@@ -4,7 +4,8 @@ A web app for planning everyday tasks around the weather. You keep a **TODO list
 priorities, and next to it you see the **weather forecast** for any place you search. If a chore means
 going outside, you can pick the best day for it.
 
-> **Status:** 🧭 Planning. The architecture has been agreed; scaffolding comes next.
+> **Status:** 🏗️ Phase 1 done: the project skeleton runs (backend, frontend, database, cache, CI).
+> Features come next.
 
 ---
 
@@ -41,13 +42,13 @@ going outside, you can pick the best day for it.
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, Vite, JavaScript, React Router, TanStack Query, Axios, CSS Modules |
-| Backend | Python 3.12, Django 5, Django REST Framework, SimpleJWT, drf-spectacular (OpenAPI / Swagger) |
+| Frontend | React 19, Vite 8, JavaScript, TanStack Query, Axios, CSS Modules (React Router comes with auth) |
+| Backend | Python 3.12, Django 6.1, Django REST Framework, SimpleJWT (Phase 2), drf-spectacular (OpenAPI / Swagger) |
 | Database | PostgreSQL 16 |
 | Cache | Redis 7 (weather responses, rate limiting) |
 | Weather data | [Open-Meteo](https://open-meteo.com/) geocoding and forecast APIs (free, no API key) |
 | Testing | pytest, pytest-django, factory_boy, responses · Vitest, React Testing Library, MSW |
-| Quality | Ruff (Python), ESLint and Prettier (JS), pre-commit |
+| Quality | Ruff (Python), oxlint and Prettier (JS), pre-commit |
 | Infrastructure | Docker, Docker Compose, Nginx (production), GitHub Actions (CI) |
 | API tooling | Swagger UI, Postman collection |
 
@@ -70,6 +71,7 @@ going outside, you can pick the best day for it.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
+| `GET` | `/api/v1/health/` | ✅ Database and cache status (`503` when degraded) |
 | `POST` | `/api/v1/auth/register/` | Create an account |
 | `POST` | `/api/v1/auth/token/` | Log in (get access and refresh tokens) |
 | `POST` | `/api/v1/auth/token/refresh/` | Refresh the access token |
@@ -79,19 +81,26 @@ going outside, you can pick the best day for it.
 | `GET` | `/api/v1/weather/locations/?q=` | Location autocomplete |
 | `GET` | `/api/v1/weather/forecast/?lat=&lon=&days=1\|3\|7` | Forecast for a location |
 
-Interactive docs will be served at `/api/docs/`.
+Interactive docs: <http://localhost:8000/api/docs/> (Swagger UI). Raw schema: `/api/schema/`.
 
-## Planned repository layout
+## Repository layout
 
 ```
 .
-├── backend/            # Django project (config/) and apps: accounts/, tasks/, weather/
-├── frontend/           # Vite + React app
-├── docs/               # Architecture notes, Postman collection
-├── .github/workflows/  # CI pipelines
-├── docker-compose.yml        # Local development
-├── docker-compose.prod.yml   # Production-like stack
-└── .env.example        # Environment variables template (real .env is never committed)
+├── backend/
+│   ├── config/             # Django project: urls, settings/{base,dev,test,prod}.py
+│   ├── core/               # Cross-cutting endpoints (health check)
+│   ├── accounts/           # Custom email-based User model (auth API in Phase 2)
+│   ├── requirements/       # base.txt (runtime) and dev.txt (tests, lint)
+│   └── pyproject.toml      # Ruff, pytest and coverage config
+├── frontend/
+│   └── src/                # api/ (Axios client), components/, test/ (MSW setup)
+├── .github/workflows/      # CI pipeline
+├── docker-compose.yml      # Local development stack
+├── .pre-commit-config.yaml # Lint/format hooks
+└── .env.example            # Optional overrides (real .env is never committed)
+
+Coming later: backend apps `tasks/` and `weather/`, `docs/` (Postman collection), `docker-compose.prod.yml`.
 ```
 
 ## Branching strategy
@@ -127,7 +136,7 @@ Conventions:
 
 - [x] Project definition and architecture
 - [x] Git branching strategy (`main`, `qa`, `develop` + short-lived branches)
-- [ ] **Phase 1:** Scaffolding: repo skeleton, Docker Compose, CI, linting, health endpoint
+- [x] **Phase 1:** Scaffolding: repo skeleton, Docker Compose, CI, linting, health endpoint
 - [ ] **Phase 2:** Backend: auth and tasks CRUD, with tests
 - [ ] **Phase 3:** Backend: weather proxy with Redis cache, with tests
 - [ ] **Phase 4:** Frontend: auth and TODO list UI, with tests
@@ -136,11 +145,73 @@ Conventions:
 
 ## Getting started
 
-Setup instructions will be added in Phase 1. The goal is a single command to run everything locally:
+### Requirements
+- Docker with Docker Compose v2
+- For running tools outside Docker (optional): Python 3.12+, Node 22.12+ with **npm 11+**
+
+### Run the whole stack
 
 ```bash
 docker compose up --build
 ```
+
+| Service | URL |
+|---|---|
+| Frontend (Vite, hot reload) | <http://localhost:5173> |
+| Backend API | <http://localhost:8000/api/v1/> |
+| Swagger UI | <http://localhost:8000/api/docs/> |
+| Django admin | <http://localhost:8000/admin/> |
+| PostgreSQL | `localhost:5433` (user `todo`, db `todo_weather`) |
+| Redis | `localhost:6379` |
+
+Every setting has a development default. To change something (for example a host port that's already
+in use), copy `.env.example` to `.env` and edit it. Create an admin user with:
+
+```bash
+docker compose exec backend python manage.py createsuperuser
+```
+
+### Backend
+
+```bash
+cd backend
+python3.12 -m venv .venv && .venv/bin/pip install -r requirements/dev.txt
+.venv/bin/pytest                                  # tests + coverage (SQLite in memory, no Docker needed)
+.venv/bin/pytest core/tests/test_health.py -k database  # a single file / test
+.venv/bin/ruff check . && .venv/bin/ruff format .  # lint + format
+```
+
+To run the tests against PostgreSQL in the running stack:
+
+```bash
+docker compose exec -e DATABASE_URL=postgres://todo:todo-dev-password@db:5432/todo_weather backend pytest
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm ci
+npm test                 # Vitest, once
+npm run test:watch       # watch mode
+npm run coverage         # with coverage thresholds (90%)
+npx vitest run src/components/HealthBadge.test.jsx   # a single file
+npm run lint && npm run format:check
+npm run build
+```
+
+### Git hooks
+
+```bash
+backend/.venv/bin/pre-commit install       # run hooks on every commit
+backend/.venv/bin/pre-commit run --all-files
+```
+
+### Continuous integration
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every pull request and on pushes to `main`, `qa` and
+`develop`. It covers backend lint, Django checks (including `check --deploy` on production settings) and
+tests on PostgreSQL and Redis; frontend lint, tests with coverage and the build; and Docker image builds.
 
 ## License
 

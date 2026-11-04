@@ -1,0 +1,34 @@
+[project]
+name = "todo-weather-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["**/migrations/*.py"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "DJ", "S", "SIM", "RUF"]
+# Django/DRF declare config as mutable class attributes (permission_classes, REQUIRED_FIELDS...).
+ignore = ["RUF012"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "S105", "S106"]
+"conftest.py" = ["S101"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py"]
+addopts = "--strict-markers --cov --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["."]
+branch = true
+# Settings are checked by `manage.py check --deploy` in CI, not by unit tests.
+omit = ["*/migrations/*", "*/tests/*", ".venv/*", "manage.py", "config/wsgi.py", "config/asgi.py", "config/settings/*"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_covered = true
