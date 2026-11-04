@@ -51,8 +51,11 @@ Work like a senior developer on a team. The branch model is documented in `READM
   The subject is imperative and ≤ 72 chars, and the body explains *why* when that isn't obvious. Never commit failing tests or secrets.
 - Committing on a short-lived branch needs no approval. **Always ask Pablo before every push and every merge**
   (including PR merges), and say which branch goes where. Approval covers only the action asked about.
-- Never commit straight to `main`, `qa` or `develop`. Changes reach them by merge, preferably through a GitHub PR (`gh pr create`)
-  with a summary and test evidence. Never force-push shared branches.
+- `main`, `qa` and `develop` are **protected by a GitHub ruleset** (`Protect_Long_Live_Branches`): every change needs a PR,
+  force-pushes and branch deletion are blocked, and 0 approvals are required. A direct `git push` to them **will be rejected**,
+  so always work on a short-lived branch and open a PR (`gh pr create --base develop`) with a summary and test evidence.
+- Merge methods: **squash** for short-lived branches into `develop` (one clean commit per feature). **Merge commit** (`gh pr merge --merge`)
+  for promotions `develop → qa → main` and hotfix back-merges, so the long-lived branches share history and don't diverge.
 - Delete merged short-lived branches (after asking).
 
 ## Agreed architecture

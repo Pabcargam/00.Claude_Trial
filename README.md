@@ -118,7 +118,10 @@ refactor/*─┘       ▲                │
 Conventions:
 - Short-lived branch names are kebab-case and have one purpose each. They are deleted after merging.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/), e.g. `feat(tasks): add priority filter`.
-- Changes reach `develop`, `qa` and `main` only through pull requests, never by direct commits or force-pushes.
+- `main`, `qa` and `develop` are protected by a GitHub ruleset: changes need a pull request, and force-pushes and
+  deletion are blocked.
+- Short-lived branches are **squash-merged** into `develop`. Promotions (`develop → qa → main`) use **merge commits**,
+  so the three long-lived branches keep the same history.
 
 ## Roadmap
 
