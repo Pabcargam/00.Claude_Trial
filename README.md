@@ -94,9 +94,36 @@ Interactive docs will be served at `/api/docs/`.
 └── .env.example        # Environment variables template (real .env is never committed)
 ```
 
+## Branching strategy
+
+Feature-based workflow with three long-lived branches:
+
+```
+feature/* ─┐
+fix/*     ─┼─► develop ──► qa ──► main  (tag vX.Y.Z → deploy)
+refactor/*─┘       ▲                │
+                   └── hotfix/* ◄───┘
+```
+
+| Branch | Purpose | Created from | Merged into |
+|---|---|---|---|
+| `main` | Production-ready, released code. Each merge is tagged `vX.Y.Z` and deployed | — | — |
+| `qa` | Testing and staging. Release candidates are checked here | — | `main` |
+| `develop` | Integration of finished work. Next release in progress | — | `qa` |
+| `feature/<name>` | New functionality (e.g. `feature/tasks-crud`) | `develop` | `develop` |
+| `fix/<name>` | Non-urgent bug fixes | `develop` | `develop` |
+| `refactor/`, `test/`, `docs/`, `chore/`, `ci/` | Changes that are not features | `develop` | `develop` |
+| `hotfix/<name>` | Urgent production fixes | `main` | `main` and `develop` |
+
+Conventions:
+- Short-lived branch names are kebab-case and have one purpose each. They are deleted after merging.
+- Commits follow [Conventional Commits](https://www.conventionalcommits.org/), e.g. `feat(tasks): add priority filter`.
+- Changes reach `develop`, `qa` and `main` only through pull requests, never by direct commits or force-pushes.
+
 ## Roadmap
 
 - [x] Project definition and architecture
+- [x] Git branching strategy (`main`, `qa`, `develop` + short-lived branches)
 - [ ] **Phase 1:** Scaffolding: repo skeleton, Docker Compose, CI, linting, health endpoint
 - [ ] **Phase 2:** Backend: auth and tasks CRUD, with tests
 - [ ] **Phase 3:** Backend: weather proxy with Redis cache, with tests
