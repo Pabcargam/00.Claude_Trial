@@ -21,10 +21,23 @@ Docker, Postman and GitHub on the backend. New technologies are added only when 
 - Every change ships with tests, and the tests are **run**, not just written. Report failures honestly.
 - Refactor when it makes the code clearer, but keep refactors separate from feature changes.
 - Architecture or stack changes go to Pablo for a decision first. Don't silently diverge from the agreed design.
-- Pablo is experienced in backend and DevOps (Django, Docker, Kubernetes, CI/CD), so skip the basics there. He is
+- Pablo is experienced in backend and DevOps (Django, Docker, Kubernetes, CI/CD), so skip the basics there. Pablo is
   learning Claude Code, so briefly explaining Claude Code features or workflows when they come up is useful.
 - **Keep `README.md` current.** Every phase or feature that changes setup, commands, the API, the architecture or the
   roadmap updates the README in the same branch: tick roadmap items, replace "planned" sections with real instructions.
+
+## Explain every file change
+
+Pablo wants to understand the reason behind every change, not just see the result.
+
+- **Before creating or editing any file**, write a short explanation in the message right before the tool call, so it
+  sits next to the permission prompt. Use this format:
+  **`path/to/file`**: what the file is for (one line) → what this change does and why (one or two lines).
+- Batched changes: when several related files are written together (for example a new Django app), give one explanation
+  per file in a compact list before the batch, not one long paragraph.
+- Generated or tool-modified files (migrations, lockfiles, formatter fixes) get a one-line note saying which command
+  produced them and why.
+- Keep it short and concrete. Explain the *why* (design reason, trade-off, which rule or phase it serves), not just the obvious *what*.
 
 ## Git workflow
 
