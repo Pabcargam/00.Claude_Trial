@@ -23,8 +23,37 @@ Docker, Postman and GitHub on the backend. New technologies are added only when 
 - Architecture or stack changes go to Pablo for a decision first. Don't silently diverge from the agreed design.
 - Pablo is experienced in backend and DevOps (Django, Docker, Kubernetes, CI/CD), so skip the basics there. He is
   learning Claude Code, so briefly explaining Claude Code features or workflows when they come up is useful.
-- Commits use Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`). Default branch: `main`.
-  Commit or push only when asked.
+- **Keep `README.md` current.** Every phase or feature that changes setup, commands, the API, the architecture or the
+  roadmap updates the README in the same branch: tick roadmap items, replace "planned" sections with real instructions.
+
+## Git workflow
+
+Work like a senior developer on a team. The branch model is documented in `README.md` → *Branching strategy*.
+
+**Long-lived branches**
+- `main`: production-ready code only. Every merge into it is a release and gets a tag (`vX.Y.Z`). Deployments come from here.
+- `develop`: integration branch. Every feature/fix branch starts from it and goes back into it.
+- `qa`: testing/staging. `develop` is promoted here for QA. A green `qa` is merged into `main`.
+
+**Short-lived branches** (start from `develop` unless noted; kebab-case; one purpose per branch)
+- `feature/<short-name>`: new functionality, e.g. `feature/tasks-crud`
+- `fix/<short-name>`: non-urgent bug fixes
+- `refactor/`, `test/`, `docs/`, `chore/`, `ci/`: changes that are not features
+- `hotfix/<short-name>`: urgent production fix. Starts from `main` and is merged back into both `main` and `develop`.
+
+**Flow:** `feature/*` → `develop` → `qa` → `main` (tag).
+
+**Rules for Claude**
+- Run `git pull` on the base branch before creating a branch and before merging. Rebase or merge `develop` into long-running
+  feature branches regularly.
+- Commit often, in small logical steps. Use Conventional Commits with a scope where useful
+  (`feat(tasks): add priority filter`, `fix(weather): handle empty geocoding result`, `test:`, `refactor:`, `docs:`, `chore:`, `ci:`).
+  The subject is imperative and ≤ 72 chars, and the body explains *why* when that isn't obvious. Never commit failing tests or secrets.
+- Committing on a short-lived branch needs no approval. **Always ask Pablo before every push and every merge**
+  (including PR merges), and say which branch goes where. Approval covers only the action asked about.
+- Never commit straight to `main`, `qa` or `develop`. Changes reach them by merge, preferably through a GitHub PR (`gh pr create`)
+  with a summary and test evidence. Never force-push shared branches.
+- Delete merged short-lived branches (after asking).
 
 ## Agreed architecture
 
@@ -63,6 +92,8 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
 4. Frontend auth + TODO UI
 5. Frontend weather panel + filters
 6. Production compose/Nginx, Postman collection (`docs/postman/`), polish
+
+Each phase runs on its own `feature/*` branch (or several) from `develop`, and ends with the README updated.
 
 ## Commands
 
