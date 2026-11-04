@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 (location search with autocomplete; filters for Today / 3 days / 1 week), so users can plan outdoor chores.
 See `README.md` for features, the planned API and the roadmap.
 
-**Current state:** planning is done and the repo holds only docs. Phase 1 (scaffolding) has not started.
-Update the *Commands* section below once the tooling exists. Do not document commands that don't work yet.
+**Current state:** Phase 1 (scaffolding) is done: health endpoint, custom User model, app shell, Docker Compose, CI.
+Keep the *Commands* section accurate. Do not document commands that don't work yet.
 
 ## Role and working agreement
 
@@ -67,14 +67,29 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
                                                    └── Open-Meteo     (geocoding + forecast, no API key)
 ```
 
-- **Frontend** (`frontend/`): React 18 + Vite, **plain JavaScript (not TypeScript)**, React Router, TanStack Query, Axios,
-  CSS Modules. Tests: Vitest + React Testing Library + MSW.
-- **Backend** (`backend/`): Django 5 + DRF; project package `config/`; apps `accounts/`, `tasks/`, `weather/`.
+- **Frontend** (`frontend/`): React 19 + Vite 8, **plain JavaScript (not TypeScript)**, TanStack Query, Axios, CSS Modules
+  (React Router arrives with auth). Tests: Vitest + React Testing Library + MSW.
+- **Backend** (`backend/`): Django 6.1 + DRF; project package `config/`; apps `accounts/`, `tasks/`, `weather/`.
   SimpleJWT (access 15 min, refresh 7 days, rotation and blacklist), drf-spectacular (Swagger at `/api/docs/`),
   django-environ, django-cors-headers. Tests: pytest + pytest-django + factory_boy + `responses`. Coverage target ≥ 90%.
 - **Infra**: `docker-compose.yml` (dev, hot reload) and `docker-compose.prod.yml` (gunicorn + Nginx serving the built SPA);
   GitHub Actions CI runs lint and tests for both sides. Config comes from `.env` (template in `.env.example`).
-- **Quality**: Ruff (Python), ESLint + Prettier (JS), pre-commit.
+- **Quality**: Ruff (Python), oxlint + Prettier (JS), pre-commit (`.pre-commit-config.yaml`).
+
+### How the pieces fit
+- **Same-origin API.** The SPA calls relative `/api/v1/...` (`frontend/src/api/client.js`). Vite proxies `/api` to Django in dev
+  (`VITE_API_PROXY_TARGET`, `http://backend:8000` in Compose); Nginx will do the same in prod. So CORS is only a fallback.
+- **Settings** live in `backend/config/settings/{base,dev,test,prod}.py`. Everything that changes per environment comes from env vars
+  (django-environ). `base.py` *requires* `DJANGO_SECRET_KEY`, `DATABASE_URL` and `REDIS_URL`. `test.py` sets defaults for them
+  (SQLite in memory, local-memory cache) so `pytest` runs with no services; CI sets `DATABASE_URL` to PostgreSQL.
+  `manage.py` defaults to `dev`, `wsgi`/`asgi` to `prod`.
+- **`AUTH_USER_MODEL = "accounts.User"`**: email is the login (no username). Always use `get_user_model()` / `settings.AUTH_USER_MODEL`.
+- DRF defaults to `IsAuthenticated` and JSON-only rendering. Public endpoints (like health) opt out explicitly.
+  Every new view needs `extend_schema` where the schema can't be inferred, and `check --deploy` must stay warning-free
+  (drf-spectacular warnings count).
+- New API apps are mounted in the `api_v1` list in `backend/config/urls.py`.
+- Frontend tests: MSW handlers live in `src/test/server.js` (unhandled requests fail the test). Render with
+  `renderWithClient` from `src/test/utils.jsx` so each test gets a fresh QueryClient.
 
 ### Key design rules
 - **The frontend never calls Open-Meteo directly.** The `weather` app proxies it, normalises the response and caches it
@@ -100,4 +115,28 @@ Each phase runs on its own `feature/*` branch (or several) from `develop`, and e
 
 ## Commands
 
-_To be filled in during Phase 1._ Planned entry point: `docker compose up --build`.
+```bash
+docker compose up --build                 # full stack: frontend :5173, API :8000, Postgres :5433, Redis :6379
+docker compose exec backend python manage.py <cmd>   # migrate, createsuperuser, makemigrations...
+```
+
+Backend (run from `backend/`, venv at `backend/.venv`, Python 3.12):
+```bash
+.venv/bin/pytest                                   # all tests + coverage gate (90%)
+.venv/bin/pytest core/tests/test_health.py -k database --no-cov   # single test
+.venv/bin/ruff check . && .venv/bin/ruff format --check .
+DJANGO_SETTINGS_MODULE=config.settings.test .venv/bin/python manage.py makemigrations --check --dry-run
+docker compose exec -e DATABASE_URL=postgres://todo:todo-dev-password@db:5432/todo_weather backend pytest  # on Postgres
+```
+
+Frontend (run from `frontend/`). The lockfile is written by **npm 11**. The local npm 10.9 crashes (`edgesOut` bug),
+so use `npx -y npm@11 install <pkg>` when changing dependencies:
+```bash
+npm test                                           # Vitest once; npm run test:watch for watch mode
+npx vitest run src/components/HealthBadge.test.jsx # single file
+npm run coverage                                   # thresholds 90%
+npm run lint && npm run format:check && npm run build
+```
+
+Before committing: `backend/.venv/bin/pre-commit run --all-files`. CI (`.github/workflows/ci.yml`) runs the same checks plus
+`check --deploy` on prod settings and the Docker image builds.
