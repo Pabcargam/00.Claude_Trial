@@ -8,7 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 (location search with autocomplete; filters for Today / 3 days / 1 week), so users can plan outdoor chores.
 See `README.md` for features, the planned API and the roadmap.
 
-**Current state:** Phase 1 (scaffolding) is done: health endpoint, custom User model, app shell, Docker Compose, CI.
+**Current state:** Phases 1–2 are done: scaffolding, JWT auth (`accounts`) and the tasks CRUD API (`tasks`).
+Next: Phase 3 (weather proxy).
 Keep the *Commands* section accurate. Do not document commands that don't work yet.
 
 ## Role and working agreement
@@ -38,6 +39,12 @@ Pablo wants to understand the reason behind every change, not just see the resul
 - Generated or tool-modified files (migrations, lockfiles, formatter fixes) get a one-line note saying which command
   produced them and why.
 - Keep it short and concrete. Explain the *why* (design reason, trade-off, which rule or phase it serves), not just the obvious *what*.
+- **Edit files directly with the Edit/Write tools, never through shell commands** (`sed`, `python` scripts, heredocs,
+  `cat >>`). The permission prompt then shows Pablo exactly what is added, removed or renamed. This is mandatory
+  for `README.md` and `CLAUDE.md` and applies to every hand-written file. Shell commands may only produce generated files
+  (migrations, lockfiles, formatter and linter fixes), and those get the one-line note above.
+- Keeping docs up to date: make one focused Edit per section (status, API table, layout, roadmap...), not one big
+  rewrite, so each change can be reviewed on its own in the prompt.
 
 ## Git workflow
 
@@ -97,6 +104,18 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
   (SQLite in memory, local-memory cache) so `pytest` runs with no services; CI sets `DATABASE_URL` to PostgreSQL.
   `manage.py` defaults to `dev`, `wsgi`/`asgi` to `prod`.
 - **`AUTH_USER_MODEL = "accounts.User"`**: email is the login (no username). Always use `get_user_model()` / `settings.AUTH_USER_MODEL`.
+  `UserManager.normalize_email` lowercases the whole email and `get_by_natural_key` uses `iexact`. Keep both, or
+  duplicate accounts that differ only by letter case become possible.
+- **Auth:** JWT is the only authentication class. Throttling is opt-in per view through `throttle_scope`
+  (`auth` = register + login; weather adds its own scope). Throttle counters live in the cache.
+- **Task priority** is a `PositiveSmallIntegerField` with `Priority` IntegerChoices (1–4), so ordering is numeric.
+  The API exposes names (`LOW`…`URGENT`, case-insensitive on input) through `tasks.serializers.PriorityField` and
+  `tasks.filters.TaskFilter`. Never sort or compare priorities as strings.
+- **Owner scoping:** owned resources filter `get_queryset()` by `request.user` and set the owner in `perform_create`.
+  Such views must return `Model.objects.none()` when `swagger_fake_view` is set, or OpenAPI generation fails.
+- **Backend tests:** shared fixtures in `backend/conftest.py` (`api_client`, `user`, `auth_client`; the cache is cleared
+  around every test). Factories live in each app's `tests/factories.py`. `filterwarnings = ["error"]`: any warning fails
+  the run. `core/tests/test_health.py` regenerates the OpenAPI schema with `--fail-on-warn`.
 - DRF defaults to `IsAuthenticated` and JSON-only rendering. Public endpoints (like health) opt out explicitly.
   Every new view needs `extend_schema` where the schema can't be inferred, and `check --deploy` must stay warning-free
   (drf-spectacular warnings count).

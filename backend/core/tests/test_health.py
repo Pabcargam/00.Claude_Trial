@@ -1,6 +1,8 @@
+import os
 from unittest import mock
 
 import pytest
+from django.core.management import call_command
 from django.urls import reverse
 from rest_framework.test import APIClient
 
@@ -68,3 +70,8 @@ def test_openapi_schema_is_served(client):
 
     assert response.status_code == 200
     assert b"/api/v1/health/" in response.content
+
+
+def test_openapi_schema_generates_without_warnings():
+    """Fails on any drf-spectacular warning (the CI deploy check would too)."""
+    call_command("spectacular", "--validate", "--fail-on-warn", "--file", os.devnull)

@@ -21,6 +21,8 @@ ignore = ["RUF012"]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["test_*.py"]
 addopts = "--strict-markers --cov --cov-report=term-missing"
+# Warnings (deprecations, insecure JWT key length...) fail the run instead of scrolling by.
+filterwarnings = ["error"]
 
 [tool.coverage.run]
 source = ["."]

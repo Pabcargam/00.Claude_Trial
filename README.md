@@ -4,8 +4,8 @@ A web app for planning everyday tasks around the weather. You keep a **TODO list
 priorities, and next to it you see the **weather forecast** for any place you search. If a chore means
 going outside, you can pick the best day for it.
 
-> **Status:** 🏗️ Phase 1 done: the project skeleton runs (backend, frontend, database, cache, CI).
-> Features come next.
+> **Status:** 🏗️ Phase 2 done: the backend API for accounts (JWT) and tasks works and is tested.
+> Next up: the weather API (Phase 3), then the frontend.
 
 ---
 
@@ -43,7 +43,7 @@ going outside, you can pick the best day for it.
 | Layer | Technology |
 |---|---|
 | Frontend | React 19, Vite 8, JavaScript, TanStack Query, Axios, CSS Modules (React Router comes with auth) |
-| Backend | Python 3.12, Django 6.1, Django REST Framework, SimpleJWT (Phase 2), drf-spectacular (OpenAPI / Swagger) |
+| Backend | Python 3.12, Django 6.1, Django REST Framework, SimpleJWT, django-filter, drf-spectacular (OpenAPI / Swagger) |
 | Database | PostgreSQL 16 |
 | Cache | Redis 7 (weather responses, rate limiting) |
 | Weather data | [Open-Meteo](https://open-meteo.com/) geocoding and forecast APIs (free, no API key) |
@@ -67,21 +67,66 @@ going outside, you can pick the best day for it.
                                   └──────────────┘       └──────────────┘      └─────────────────┘
 ```
 
-### Planned API (v1)
+### API (v1)
+
+✅ = available now; the rest is planned.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
 | `GET` | `/api/v1/health/` | ✅ Database and cache status (`503` when degraded) |
-| `POST` | `/api/v1/auth/register/` | Create an account |
-| `POST` | `/api/v1/auth/token/` | Log in (get access and refresh tokens) |
-| `POST` | `/api/v1/auth/token/refresh/` | Refresh the access token |
-| `POST` | `/api/v1/auth/logout/` | Blacklist the refresh token |
-| `GET` / `POST` | `/api/v1/tasks/` | List (filter, search, order) and create tasks |
-| `GET` / `PATCH` / `DELETE` | `/api/v1/tasks/{id}/` | Read, update and delete a task |
+| `POST` | `/api/v1/auth/register/` | ✅ Create an account (`email`, `password`, optional `first_name`, `last_name`) |
+| `POST` | `/api/v1/auth/token/` | ✅ Log in with `email` + `password` → `access` (15 min) and `refresh` (7 days) tokens |
+| `POST` | `/api/v1/auth/token/refresh/` | ✅ New access token; the refresh token is rotated and the old one revoked |
+| `POST` | `/api/v1/auth/logout/` | ✅ Revoke a refresh token (`{"refresh": "..."}`) |
+| `GET` | `/api/v1/auth/me/` | ✅ The logged-in user's profile |
+| `GET` / `POST` | `/api/v1/tasks/` | ✅ List (filter, search, order, paginate) and create tasks |
+| `GET` / `PATCH` / `DELETE` | `/api/v1/tasks/{id}/` | ✅ Read, update and delete one of your tasks |
 | `GET` | `/api/v1/weather/locations/?q=` | Location autocomplete |
 | `GET` | `/api/v1/weather/forecast/?lat=&lon=&days=1\|3\|7` | Forecast for a location |
 
 Interactive docs: <http://localhost:8000/api/docs/> (Swagger UI). Raw schema: `/api/schema/`.
+
+**Authentication.** Every endpoint except health, register, login, refresh and logout needs an
+`Authorization: Bearer <access>` header. Register and login are limited to 10 requests per minute per client
+(`429` beyond that). Emails are case-insensitive.
+
+**Task fields**
+
+| Field | Notes |
+|---|---|
+| `title` | Required, up to 200 characters (surrounding spaces are trimmed) |
+| `description` | Optional |
+| `priority` | `LOW`, `MEDIUM` (default), `HIGH`, `URGENT`; case-insensitive on input |
+| `is_completed` | `true` fills `completed_at`; `false` clears it |
+| `due_date` | Optional, `YYYY-MM-DD` |
+| `is_outdoor` | Marks weather-dependent tasks |
+| `id`, `completed_at`, `created_at`, `updated_at` | Read-only |
+
+**Listing tasks.** Query parameters:
+- Filters: `priority` (repeatable: `?priority=HIGH&priority=URGENT`), `completed`, `is_outdoor`, `due_before`, `due_after`
+- Text search: `search` (title and description)
+- Sorting: `ordering` with `priority`, `due_date`, `created_at`, `updated_at` or `title`; prefix `-` for descending
+- Pagination: `page`, `page_size` (default 50, max 200)
+
+The default order is open tasks first, then most urgent, then soonest due date. You only ever see your own
+tasks: another user's task answers `404`, as if it didn't exist.
+
+**Try it with curl** (stack running):
+
+```bash
+curl -X POST localhost:8000/api/v1/auth/register/ -H 'Content-Type: application/json' \
+  -d '{"email": "me@example.com", "password": "Sup3r-secret!"}'
+
+ACCESS=$(curl -s -X POST localhost:8000/api/v1/auth/token/ -H 'Content-Type: application/json' \
+  -d '{"email": "me@example.com", "password": "Sup3r-secret!"}' \
+  | python3 -c 'import sys, json; print(json.load(sys.stdin)["access"])')
+
+curl -X POST localhost:8000/api/v1/tasks/ -H "Authorization: Bearer $ACCESS" \
+  -H 'Content-Type: application/json' \
+  -d '{"title": "Paint the fence", "priority": "HIGH", "is_outdoor": true}'
+
+curl "localhost:8000/api/v1/tasks/?priority=HIGH" -H "Authorization: Bearer $ACCESS"
+```
 
 ## Repository layout
 
@@ -90,7 +135,9 @@ Interactive docs: <http://localhost:8000/api/docs/> (Swagger UI). Raw schema: `/
 ├── backend/
 │   ├── config/             # Django project: urls, settings/{base,dev,test,prod}.py
 │   ├── core/               # Cross-cutting endpoints (health check)
-│   ├── accounts/           # Custom email-based User model (auth API in Phase 2)
+│   ├── accounts/           # Email-based User model and JWT auth endpoints
+│   ├── tasks/              # Task model and per-user CRUD API
+│   ├── conftest.py         # Shared pytest fixtures
 │   ├── requirements/       # base.txt (runtime) and dev.txt (tests, lint)
 │   └── pyproject.toml      # Ruff, pytest and coverage config
 ├── frontend/
@@ -99,9 +146,9 @@ Interactive docs: <http://localhost:8000/api/docs/> (Swagger UI). Raw schema: `/
 ├── docker-compose.yml      # Local development stack
 ├── .pre-commit-config.yaml # Lint/format hooks
 └── .env.example            # Optional overrides (real .env is never committed)
-
-Coming later: backend apps `tasks/` and `weather/`, `docs/` (Postman collection), `docker-compose.prod.yml`.
 ```
+
+Coming later: backend app `weather/`, `docs/` (Postman collection), `docker-compose.prod.yml`.
 
 ## Branching strategy
 
@@ -137,7 +184,7 @@ Conventions:
 - [x] Project definition and architecture
 - [x] Git branching strategy (`main`, `qa`, `develop` + short-lived branches)
 - [x] **Phase 1:** Scaffolding: repo skeleton, Docker Compose, CI, linting, health endpoint
-- [ ] **Phase 2:** Backend: auth and tasks CRUD, with tests
+- [x] **Phase 2:** Backend: auth and tasks CRUD, with tests
 - [ ] **Phase 3:** Backend: weather proxy with Redis cache, with tests
 - [ ] **Phase 4:** Frontend: auth and TODO list UI, with tests
 - [ ] **Phase 5:** Frontend: weather panel and forecast filters, with tests
