@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     # Local
     "core",
     "accounts",
+    "tasks",
 ]
 
 MIDDLEWARE = [
