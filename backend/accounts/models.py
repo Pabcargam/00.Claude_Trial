@@ -11,6 +11,15 @@ from django.db import models
 class UserManager(BaseUserManager):
     use_in_migrations = True
 
+    @classmethod
+    def normalize_email(cls, email):
+        """Store emails fully lowercased so `A@x.com` and `a@x.com` are one account."""
+        return (email or "").strip().lower()
+
+    def get_by_natural_key(self, username):
+        """Case-insensitive login (Django's ModelBackend and SimpleJWT both call this)."""
+        return self.get(**{f"{self.model.USERNAME_FIELD}__iexact": username})
+
     def _create_user(self, email, password, **extra_fields):
         if not email:
             raise ValueError("Users must have an email address.")
