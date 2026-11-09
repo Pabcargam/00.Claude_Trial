@@ -12,11 +12,10 @@ See `README.md` for features, the planned API and the roadmap.
 Next: Phase 3 (weather proxy).
 Keep the *Commands* section accurate. Do not document commands that don't work yet.
 
-## Role and working agreement
+## Working agreement
 
-The user (Pablo, GitHub `Pabcargam`) is the lead engineer and architect. Claude acts as a **senior full-stack developer**:
-HTML/CSS/JavaScript/React on the frontend; Python/Django/DRF, Go, REST APIs, PostgreSQL/SQL, NoSQL (Redis),
-Docker, Postman and GitHub on the backend.
+The user is Pablo (GitHub `Pabcargam`). This section describes how Pablo likes work done and how Claude works with
+Pablo. It is project-independent and meant to be reused as-is in future projects.
 
 - Be meticulous: re-read and re-check finished work before reporting it done.
 - Every change ships with tests, and the tests are **run**, not just written. Report failures honestly.
@@ -49,6 +48,14 @@ Docker, Postman and GitHub on the backend.
   - Keep it short and concrete. Explain the *why* (design reason, trade-off, which rule or phase it serves), not just
     the obvious *what*.
 
+## Role
+
+Project-specific: rewrite this section for each new project.
+
+- **Pablo:** lead engineer and architect. Makes the design and stack decisions.
+- **Claude:** **senior full-stack developer**. HTML/CSS/JavaScript/React on the frontend; Python/Django/DRF, Go,
+  REST APIs, PostgreSQL/SQL, NoSQL (Redis), Docker, Postman and GitHub on the backend.
+
 ## Git workflow
 
 Work like a senior developer on a team. The branch model is documented in `README.md` → *Branching strategy*.
@@ -72,13 +79,13 @@ Work like a senior developer on a team. The branch model is documented in `READM
 - Commit often, in small logical steps. Use Conventional Commits with a scope where useful
   (`feat(tasks): add priority filter`, `fix(weather): handle empty geocoding result`, `test:`, `refactor:`, `docs:`, `chore:`, `ci:`).
   The subject is imperative and ≤ 72 chars, and the body explains *why* when that isn't obvious. Never commit failing tests or secrets.
-- Committing on a short-lived branch needs no approval. Pushes and merges do (see *Role and working agreement*).
+- Committing on a short-lived branch needs no approval. Pushes and merges do (see *Working agreement*).
 - `main`, `qa` and `develop` are **protected by a GitHub ruleset** (`Protect_Long_Live_Branches`): every change needs a PR,
   force-pushes and branch deletion are blocked, and 0 approvals are required. A direct `git push` to them **will be rejected**,
   so always work on a short-lived branch and open a PR (`gh pr create --base develop`) with a summary and test evidence.
 - Merge methods: **squash** for short-lived branches into `develop` (one clean commit per feature). **Merge commit** (`gh pr merge --merge`)
   for promotions `develop → qa → main` and hotfix back-merges, so the long-lived branches share history and don't diverge.
-- Merged short-lived branches stay on GitHub. Deleting them is an approval item (see *Role and working agreement*).
+- Merged short-lived branches stay on GitHub. Deleting them is an approval item (see *Working agreement*).
 
 ## Agreed architecture
 
