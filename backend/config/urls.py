@@ -6,6 +6,7 @@ api_v1 = [
     path("", include("core.urls")),
     path("auth/", include("accounts.urls")),
     path("", include("tasks.urls")),
+    path("weather/", include("weather.urls")),
 ]
 
 urlpatterns = [
