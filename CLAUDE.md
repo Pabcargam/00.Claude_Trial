@@ -2,15 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project
-
-**TODO + Weather Planner**: a multi-user web app with a prioritised TODO list next to a weather forecast
-(location search with autocomplete; filters for Today / 3 days / 1 week), so users can plan outdoor chores.
-See `README.md` for features, the planned API and the roadmap.
-
-**Current state:** Phases 1–2 are done: scaffolding, JWT auth (`accounts`) and the tasks CRUD API (`tasks`).
-Next: Phase 3 (weather proxy).
-Keep the *Commands* section accurate. Do not document commands that don't work yet.
+> [!TIP]
+> 🟢 **STANDARD: reusable in every project.** This part is project-independent. Copy it unchanged into the
+> CLAUDE.md of new projects.
+>
+> **Advice:** instead of copying it, this part can be standardised once in a higher-level CLAUDE.md. Claude Code also
+> loads the CLAUDE.md files of the project's parent folders (e.g. `~/Documents/Projects/CLAUDE.md` applies to every
+> project under that folder) and `~/.claude/CLAUDE.md` (applies to every project on this machine). Once it lives
+> there, remove it from the project files so the rules exist in one place only.
 
 ## Working agreement
 
@@ -48,9 +47,21 @@ Pablo. It is project-independent and meant to be reused as-is in future projects
   - Keep it short and concrete. Explain the *why* (design reason, trade-off, which rule or phase it serves), not just
     the obvious *what*.
 
-## Role
+> [!WARNING]
+> 🟠 **PROJECT-SPECIFIC: rewrite for every new project.** Everything from here to the end of the file describes
+> this project only (its goal, roles, workflow, architecture and commands).
 
-Project-specific: rewrite this section for each new project.
+## Project
+
+**TODO + Weather Planner**: a multi-user web app with a prioritised TODO list next to a weather forecast
+(location search with autocomplete; filters for Today / 3 days / 1 week), so users can plan outdoor chores.
+See `README.md` for features, the planned API and the roadmap.
+
+**Current state:** Phases 1–2 are done: scaffolding, JWT auth (`accounts`) and the tasks CRUD API (`tasks`).
+Next: Phase 3 (weather proxy).
+Keep the *Commands* section accurate. Do not document commands that don't work yet.
+
+## Role
 
 - **Pablo:** lead engineer and architect. Makes the design and stack decisions.
 - **Claude:** **senior full-stack developer**. HTML/CSS/JavaScript/React on the frontend; Python/Django/DRF, Go,
