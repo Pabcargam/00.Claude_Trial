@@ -57,8 +57,8 @@ Pablo. It is project-independent and meant to be reused as-is in future projects
 (location search with autocomplete; filters for Today / 3 days / 1 week), so users can plan outdoor chores.
 See `README.md` for features, the planned API and the roadmap.
 
-**Current state:** Phases 1–2 are done: scaffolding, JWT auth (`accounts`) and the tasks CRUD API (`tasks`).
-Next: Phase 3 (weather proxy).
+**Current state:** Phases 1–3 are done: the backend is complete (scaffolding, JWT auth in `accounts`, tasks CRUD in
+`tasks`, cached Open-Meteo proxy in `weather`). Next: Phase 4 (frontend auth + TODO UI).
 Keep the *Commands* section accurate. Do not document commands that don't work yet.
 
 ## Role
@@ -126,14 +126,20 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
 - **`AUTH_USER_MODEL = "accounts.User"`**: email is the login (no username).
   `UserManager.normalize_email` lowercases the whole email and `get_by_natural_key` uses `iexact`.
 - **Auth:** JWT is the only authentication class. Throttling is opt-in per view through `throttle_scope`
-  (`auth` = register + login; weather adds its own scope). Throttle counters live in the cache.
+  (`auth` = register + login, 10/min; `weather` = both weather views, 60/min per user). Throttle counters live in the cache.
 - **Task priority** is a `PositiveSmallIntegerField` with `Priority` IntegerChoices (1–4), so ordering is numeric.
   The API exposes names (`LOW`…`URGENT`, case-insensitive on input) through `tasks.serializers.PriorityField` and
   `tasks.filters.TaskFilter`.
 - **Owner scoping:** owned resources filter `get_queryset()` by `request.user` and set the owner in `perform_create`.
+- **Weather** has three layers and no models. `weather/client.py` does the HTTP calls and turns every upstream failure into
+  `WeatherServiceUnavailable` (503). `weather/services.py` normalises Open-Meteo's parallel arrays into daily/hourly rows
+  (WMO codes → description + icon via `weather/codes.py`) and caches them. `weather/views.py` only validates query
+  params. The forecast cache key uses coordinates rounded to 2 decimals; one 7-day entry serves `days=1|3|7`.
+  Settings live in `settings.WEATHER`.
 - **Backend tests:** shared fixtures in `backend/conftest.py` (`api_client`, `user`, `auth_client`; the cache is cleared
   around every test). Factories live in each app's `tests/factories.py`. `filterwarnings = ["error"]`: any warning fails
-  the run. `core/tests/test_health.py` regenerates the OpenAPI schema with `--fail-on-warn`.
+  the run. `core/tests/test_health.py` regenerates the OpenAPI schema with `--fail-on-warn`. Weather tests use the
+  `mock_open_meteo` fixture (`weather/tests/conftest.py`) and payloads in `weather/tests/payloads.py`.
 - DRF defaults to `IsAuthenticated` and JSON-only rendering. Public endpoints (like health) opt out explicitly.
 - New API apps are mounted in the `api_v1` list in `backend/config/urls.py`.
 - Frontend tests: MSW handlers live in `src/test/server.js` (unhandled requests fail the test). Render with
@@ -141,7 +147,9 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
 
 ### Key design rules
 - **The frontend never calls Open-Meteo directly.** The `weather` app proxies it, normalises the response and caches it
-  in Redis (about 10–15 min per rounded lat/lon). Tests mock Open-Meteo with `responses`. Never hit the real API in tests.
+  in Redis (15 min per rounded lat/lon; searches 24 h). Only `weather/client.py` may make HTTP calls to Open-Meteo.
+  Never cache failures. Never hit the real API in tests: use the `mock_open_meteo` fixture, which turns any unmocked
+  request into an error.
 - **"Real-time" weather** means a debounced (~300 ms) location autocomplete. Picking a location fetches a 7-day
   forecast **once**. The Today / 3-day / 1-week filters slice that data on the client, with no extra request.
 - **Per-user isolation:** every task queryset is filtered by `owner=request.user`. Tests must check that one user

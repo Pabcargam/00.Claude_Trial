@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "core",
     "accounts",
     "tasks",
+    "weather",
 ]
 
 MIDDLEWARE = [
@@ -112,10 +113,11 @@ REST_FRAMEWORK = {
         "rest_framework.filters.OrderingFilter",
     ],
     "DEFAULT_PAGINATION_CLASS": "core.pagination.StandardPagination",
-    # Only views that set `throttle_scope` are throttled (auth now, weather in Phase 3).
+    # Only views that set `throttle_scope` are throttled.
     "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.ScopedRateThrottle"],
     "DEFAULT_THROTTLE_RATES": {
         "auth": env("THROTTLE_RATE_AUTH", default="10/minute"),
+        "weather": env("THROTTLE_RATE_WEATHER", default="60/minute"),
     },
 }
 
@@ -126,6 +128,21 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+# --- Weather (Open-Meteo, no API key) ------------------------------------------
+WEATHER = {
+    "GEOCODING_URL": env(
+        "OPEN_METEO_GEOCODING_URL", default="https://geocoding-api.open-meteo.com/v1/search"
+    ),
+    "FORECAST_URL": env(
+        "OPEN_METEO_FORECAST_URL", default="https://api.open-meteo.com/v1/forecast"
+    ),
+    "TIMEOUT_SECONDS": env.float("OPEN_METEO_TIMEOUT_SECONDS", default=5.0),
+    # Open-Meteo refreshes forecasts hourly; 15 min keeps data fresh while sparing the free API.
+    "FORECAST_CACHE_SECONDS": env.int("WEATHER_FORECAST_CACHE_SECONDS", default=15 * 60),
+    # Place names and coordinates practically never change.
+    "LOCATIONS_CACHE_SECONDS": env.int("WEATHER_LOCATIONS_CACHE_SECONDS", default=24 * 60 * 60),
 }
 
 SPECTACULAR_SETTINGS = {

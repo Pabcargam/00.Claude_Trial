@@ -4,8 +4,8 @@ A web app for planning everyday tasks around the weather. You keep a **TODO list
 priorities, and next to it you see the **weather forecast** for any place you search. If a chore means
 going outside, you can pick the best day for it.
 
-> **Status:** 🏗️ Phase 2 done: the backend API for accounts (JWT) and tasks works and is tested.
-> Next up: the weather API (Phase 3), then the frontend.
+> **Status:** 🏗️ Phase 3 done: the backend API is complete (accounts, tasks and cached weather) and tested.
+> Next up: the frontend (Phases 4 and 5).
 
 ---
 
@@ -69,7 +69,7 @@ going outside, you can pick the best day for it.
 
 ### API (v1)
 
-✅ = available now; the rest is planned.
+✅ = available now. All planned backend endpoints are live.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
@@ -81,14 +81,14 @@ going outside, you can pick the best day for it.
 | `GET` | `/api/v1/auth/me/` | ✅ The logged-in user's profile |
 | `GET` / `POST` | `/api/v1/tasks/` | ✅ List (filter, search, order, paginate) and create tasks |
 | `GET` / `PATCH` / `DELETE` | `/api/v1/tasks/{id}/` | ✅ Read, update and delete one of your tasks |
-| `GET` | `/api/v1/weather/locations/?q=` | Location autocomplete |
-| `GET` | `/api/v1/weather/forecast/?lat=&lon=&days=1\|3\|7` | Forecast for a location |
+| `GET` | `/api/v1/weather/locations/?q=` | ✅ Location autocomplete (up to 8 matches, `q` 2–100 characters) |
+| `GET` | `/api/v1/weather/forecast/?lat=&lon=&days=1\|3\|7` | ✅ Current conditions, daily and hourly forecast (`days` defaults to 7) |
 
 Interactive docs: <http://localhost:8000/api/docs/> (Swagger UI). Raw schema: `/api/schema/`.
 
 **Authentication.** Every endpoint except health, register, login, refresh and logout needs an
-`Authorization: Bearer <access>` header. Register and login are limited to 10 requests per minute per client
-(`429` beyond that). Emails are case-insensitive.
+`Authorization: Bearer <access>` header. Register and login are limited to 10 requests per minute per client,
+and the weather endpoints to 60 per minute per user (`429` beyond that). Emails are case-insensitive.
 
 **Task fields**
 
@@ -111,6 +111,32 @@ Interactive docs: <http://localhost:8000/api/docs/> (Swagger UI). Raw schema: `/
 The default order is open tasks first, then most urgent, then soonest due date. You only ever see your own
 tasks: another user's task answers `404`, as if it didn't exist.
 
+**Weather.** The backend calls [Open-Meteo](https://open-meteo.com/) and returns its own simpler format:
+
+```jsonc
+{
+  "days": 3,
+  "location": {"latitude": 37.36, "longitude": -5.96, "timezone": "Europe/Madrid", "elevation": 15.0},
+  "units": {"temperature": "°C", "wind_speed": "km/h", "precipitation": "mm", "probability": "%"},
+  "current": {"time": "2026-11-09T11:30", "temperature": 20.9, "wind_speed": 17.3, "is_day": true,
+              "weather_code": 80, "description": "Slight rain showers", "icon": "showers"},
+  "daily": [{"date": "2026-11-09", "temperature_min": 18.6, "temperature_max": 21.8,
+             "precipitation_probability": 100, "precipitation_sum": 17.1, "wind_speed_max": 19.6,
+             "weather_code": 95, "description": "Thunderstorm", "icon": "thunderstorm"}],
+  "hourly": [{"time": "2026-11-09T00:00", "temperature": 18.8, "precipitation_probability": 78,
+              "wind_speed": 9.2, "weather_code": 95, "description": "Thunderstorm", "icon": "thunderstorm"}]
+}
+```
+
+- `hourly` holds 24 rows per selected day, in the location's local time.
+- `icon` is one of `clear`, `partly-cloudy`, `cloudy`, `fog`, `drizzle`, `rain`, `freezing-rain`, `showers`, `snow`,
+  `thunderstorm` or `unknown`.
+- Caching (Redis): a forecast is kept for 15 minutes per ~1 km area (coordinates rounded to 2 decimals), so data
+  can be up to 15 minutes old. One 7-day fetch serves all three `days` filters. Location searches are kept for 24 hours.
+- If Open-Meteo is down or answers unexpectedly, the API returns `503` with a friendly message. Failures are never cached.
+- Tunable through environment variables: `WEATHER_FORECAST_CACHE_SECONDS`, `WEATHER_LOCATIONS_CACHE_SECONDS`,
+  `OPEN_METEO_TIMEOUT_SECONDS`, `THROTTLE_RATE_WEATHER`.
+
 **Try it with curl** (stack running):
 
 ```bash
@@ -126,6 +152,10 @@ curl -X POST localhost:8000/api/v1/tasks/ -H "Authorization: Bearer $ACCESS" \
   -d '{"title": "Paint the fence", "priority": "HIGH", "is_outdoor": true}'
 
 curl "localhost:8000/api/v1/tasks/?priority=HIGH" -H "Authorization: Bearer $ACCESS"
+
+curl "localhost:8000/api/v1/weather/locations/?q=Sevil" -H "Authorization: Bearer $ACCESS"
+
+curl "localhost:8000/api/v1/weather/forecast/?lat=37.38&lon=-5.97&days=3" -H "Authorization: Bearer $ACCESS"
 ```
 
 ## Repository layout
@@ -137,6 +167,7 @@ curl "localhost:8000/api/v1/tasks/?priority=HIGH" -H "Authorization: Bearer $ACC
 │   ├── core/               # Cross-cutting endpoints (health check)
 │   ├── accounts/           # Email-based User model and JWT auth endpoints
 │   ├── tasks/              # Task model and per-user CRUD API
+│   ├── weather/            # Open-Meteo client, normalisation, Redis cache and endpoints
 │   ├── conftest.py         # Shared pytest fixtures
 │   ├── requirements/       # base.txt (runtime) and dev.txt (tests, lint)
 │   └── pyproject.toml      # Ruff, pytest and coverage config
@@ -148,7 +179,7 @@ curl "localhost:8000/api/v1/tasks/?priority=HIGH" -H "Authorization: Bearer $ACC
 └── .env.example            # Optional overrides (real .env is never committed)
 ```
 
-Coming later: backend app `weather/`, `docs/` (Postman collection), `docker-compose.prod.yml`.
+Coming later: `docs/` (Postman collection), `docker-compose.prod.yml`.
 
 ## Branching strategy
 
@@ -185,7 +216,7 @@ Conventions:
 - [x] Git branching strategy (`main`, `qa`, `develop` + short-lived branches)
 - [x] **Phase 1:** Scaffolding: repo skeleton, Docker Compose, CI, linting, health endpoint
 - [x] **Phase 2:** Backend: auth and tasks CRUD, with tests
-- [ ] **Phase 3:** Backend: weather proxy with Redis cache, with tests
+- [x] **Phase 3:** Backend: weather proxy with Redis cache, with tests
 - [ ] **Phase 4:** Frontend: auth and TODO list UI, with tests
 - [ ] **Phase 5:** Frontend: weather panel and forecast filters, with tests
 - [ ] **Phase 6:** Production compose with Nginx, Postman collection, polish and refactor
