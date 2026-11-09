@@ -2,6 +2,55 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> [!TIP]
+> 🟢 **STANDARD: reusable in every project.** This part is project-independent. Copy it unchanged into the
+> CLAUDE.md of new projects.
+>
+> **Advice:** instead of copying it, this part can be standardised once in a higher-level CLAUDE.md. Claude Code also
+> loads the CLAUDE.md files of the project's parent folders (e.g. `~/Documents/Projects/CLAUDE.md` applies to every
+> project under that folder) and `~/.claude/CLAUDE.md` (applies to every project on this machine). Once it lives
+> there, remove it from the project files so the rules exist in one place only.
+
+## Working agreement
+
+The user is Pablo (GitHub `Pabcargam`). This section describes how Pablo likes work done and how Claude works with
+Pablo. It is project-independent and meant to be reused as-is in future projects.
+
+- Be meticulous: re-read and re-check finished work before reporting it done.
+- Every change ships with tests, and the tests are **run**, not just written. Report failures honestly.
+- Refactor when it makes the code clearer, but keep refactors separate from feature changes.
+- **Pablo approves before…** Ask first, say exactly what will happen, and treat each approval as covering only that action.
+  Never silently diverge from the agreed design.
+  - Architecture or stack changes.
+  - New technologies, which are added only when the plan needs them.
+  - Every push and every merge (including PR merges), saying which branch goes where.
+  - Deleting branches. Merged branches are kept unless Pablo asks to delete them.
+- Pablo is experienced in backend and DevOps (Django, Docker, Kubernetes, CI/CD), so skip the basics there. Pablo is
+  learning Claude Code, so briefly explaining Claude Code features or workflows when they come up is useful.
+- **Keep docs up to date.** Every phase or feature that changes setup, commands, the API, the architecture or the
+  roadmap updates `README.md` (and `CLAUDE.md` when conventions change) in the same branch.
+  - Tick roadmap items and replace "planned" sections with real instructions.
+  - Make one focused Edit per section (status, API table, layout, roadmap...), not one big rewrite, so each change can
+    be reviewed on its own in the permission prompt.
+- **Edit files directly with the Edit/Write tools, never through shell commands** (`sed`, `python` scripts, heredocs,
+  `cat >>`). The permission prompt then shows Pablo exactly what is added, removed or renamed. This is mandatory
+  for `README.md` and `CLAUDE.md` and applies to every hand-written file. Shell commands may only produce generated files
+  (migrations, lockfiles, formatter and linter fixes).
+- **Explain all the changes to Pablo.** Pablo wants to understand the reason behind every change, not just see the
+  result. Before creating or editing any file, write a short explanation in the message right before the tool call,
+  so it sits next to the permission prompt.
+  - Format: **`path/to/file`**: what the file is for (one line) → what this change does and why (one or two lines).
+  - Batched changes: when several related files are written together (for example a new Django app), give one
+    explanation per file in a compact list before the batch, not one long paragraph.
+  - Generated or tool-modified files (migrations, lockfiles, formatter fixes) get a one-line note saying which command
+    produced them and why.
+  - Keep it short and concrete. Explain the *why* (design reason, trade-off, which rule or phase it serves), not just
+    the obvious *what*.
+
+> [!WARNING]
+> 🟠 **PROJECT-SPECIFIC: rewrite for every new project.** Everything from here to the end of the file describes
+> this project only (its goal, roles, workflow, architecture and commands).
+
 ## Project
 
 **TODO + Weather Planner**: a multi-user web app with a prioritised TODO list next to a weather forecast
@@ -12,39 +61,11 @@ See `README.md` for features, the planned API and the roadmap.
 Next: Phase 3 (weather proxy).
 Keep the *Commands* section accurate. Do not document commands that don't work yet.
 
-## Role and working agreement
+## Role
 
-The user (Pablo, GitHub `Pabcargam`) is the lead engineer and architect. Claude acts as a **senior full-stack developer**:
-HTML/CSS/JavaScript/React on the frontend; Python/Django/DRF, Go, REST APIs, PostgreSQL/SQL, NoSQL (Redis),
-Docker, Postman and GitHub on the backend. New technologies are added only when the plan needs them, and after discussing them with Pablo.
-
-- Be meticulous: re-read and re-check finished work before reporting it done.
-- Every change ships with tests, and the tests are **run**, not just written. Report failures honestly.
-- Refactor when it makes the code clearer, but keep refactors separate from feature changes.
-- Architecture or stack changes go to Pablo for a decision first. Don't silently diverge from the agreed design.
-- Pablo is experienced in backend and DevOps (Django, Docker, Kubernetes, CI/CD), so skip the basics there. Pablo is
-  learning Claude Code, so briefly explaining Claude Code features or workflows when they come up is useful.
-- **Keep `README.md` current.** Every phase or feature that changes setup, commands, the API, the architecture or the
-  roadmap updates the README in the same branch: tick roadmap items, replace "planned" sections with real instructions.
-
-## Explain every file change
-
-Pablo wants to understand the reason behind every change, not just see the result.
-
-- **Before creating or editing any file**, write a short explanation in the message right before the tool call, so it
-  sits next to the permission prompt. Use this format:
-  **`path/to/file`**: what the file is for (one line) → what this change does and why (one or two lines).
-- Batched changes: when several related files are written together (for example a new Django app), give one explanation
-  per file in a compact list before the batch, not one long paragraph.
-- Generated or tool-modified files (migrations, lockfiles, formatter fixes) get a one-line note saying which command
-  produced them and why.
-- Keep it short and concrete. Explain the *why* (design reason, trade-off, which rule or phase it serves), not just the obvious *what*.
-- **Edit files directly with the Edit/Write tools, never through shell commands** (`sed`, `python` scripts, heredocs,
-  `cat >>`). The permission prompt then shows Pablo exactly what is added, removed or renamed. This is mandatory
-  for `README.md` and `CLAUDE.md` and applies to every hand-written file. Shell commands may only produce generated files
-  (migrations, lockfiles, formatter and linter fixes), and those get the one-line note above.
-- Keeping docs up to date: make one focused Edit per section (status, API table, layout, roadmap...), not one big
-  rewrite, so each change can be reviewed on its own in the prompt.
+- **Pablo:** lead engineer and architect. Makes the design and stack decisions.
+- **Claude:** **senior full-stack developer**. HTML/CSS/JavaScript/React on the frontend; Python/Django/DRF, Go,
+  REST APIs, PostgreSQL/SQL, NoSQL (Redis), Docker, Postman and GitHub on the backend.
 
 ## Git workflow
 
@@ -69,14 +90,13 @@ Work like a senior developer on a team. The branch model is documented in `READM
 - Commit often, in small logical steps. Use Conventional Commits with a scope where useful
   (`feat(tasks): add priority filter`, `fix(weather): handle empty geocoding result`, `test:`, `refactor:`, `docs:`, `chore:`, `ci:`).
   The subject is imperative and ≤ 72 chars, and the body explains *why* when that isn't obvious. Never commit failing tests or secrets.
-- Committing on a short-lived branch needs no approval. **Always ask Pablo before every push and every merge**
-  (including PR merges), and say which branch goes where. Approval covers only the action asked about.
+- Committing on a short-lived branch needs no approval. Pushes and merges do (see *Working agreement*).
 - `main`, `qa` and `develop` are **protected by a GitHub ruleset** (`Protect_Long_Live_Branches`): every change needs a PR,
   force-pushes and branch deletion are blocked, and 0 approvals are required. A direct `git push` to them **will be rejected**,
   so always work on a short-lived branch and open a PR (`gh pr create --base develop`) with a summary and test evidence.
 - Merge methods: **squash** for short-lived branches into `develop` (one clean commit per feature). **Merge commit** (`gh pr merge --merge`)
   for promotions `develop → qa → main` and hotfix back-merges, so the long-lived branches share history and don't diverge.
-- Delete merged short-lived branches (after asking).
+- Merged short-lived branches stay on GitHub. Deleting them is an approval item (see *Working agreement*).
 
 ## Agreed architecture
 
@@ -103,22 +123,18 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
   (django-environ). `base.py` *requires* `DJANGO_SECRET_KEY`, `DATABASE_URL` and `REDIS_URL`. `test.py` sets defaults for them
   (SQLite in memory, local-memory cache) so `pytest` runs with no services; CI sets `DATABASE_URL` to PostgreSQL.
   `manage.py` defaults to `dev`, `wsgi`/`asgi` to `prod`.
-- **`AUTH_USER_MODEL = "accounts.User"`**: email is the login (no username). Always use `get_user_model()` / `settings.AUTH_USER_MODEL`.
-  `UserManager.normalize_email` lowercases the whole email and `get_by_natural_key` uses `iexact`. Keep both, or
-  duplicate accounts that differ only by letter case become possible.
+- **`AUTH_USER_MODEL = "accounts.User"`**: email is the login (no username).
+  `UserManager.normalize_email` lowercases the whole email and `get_by_natural_key` uses `iexact`.
 - **Auth:** JWT is the only authentication class. Throttling is opt-in per view through `throttle_scope`
   (`auth` = register + login; weather adds its own scope). Throttle counters live in the cache.
 - **Task priority** is a `PositiveSmallIntegerField` with `Priority` IntegerChoices (1–4), so ordering is numeric.
   The API exposes names (`LOW`…`URGENT`, case-insensitive on input) through `tasks.serializers.PriorityField` and
-  `tasks.filters.TaskFilter`. Never sort or compare priorities as strings.
+  `tasks.filters.TaskFilter`.
 - **Owner scoping:** owned resources filter `get_queryset()` by `request.user` and set the owner in `perform_create`.
-  Such views must return `Model.objects.none()` when `swagger_fake_view` is set, or OpenAPI generation fails.
 - **Backend tests:** shared fixtures in `backend/conftest.py` (`api_client`, `user`, `auth_client`; the cache is cleared
   around every test). Factories live in each app's `tests/factories.py`. `filterwarnings = ["error"]`: any warning fails
   the run. `core/tests/test_health.py` regenerates the OpenAPI schema with `--fail-on-warn`.
 - DRF defaults to `IsAuthenticated` and JSON-only rendering. Public endpoints (like health) opt out explicitly.
-  Every new view needs `extend_schema` where the schema can't be inferred, and `check --deploy` must stay warning-free
-  (drf-spectacular warnings count).
 - New API apps are mounted in the `api_v1` list in `backend/config/urls.py`.
 - Frontend tests: MSW handlers live in `src/test/server.js` (unhandled requests fail the test). Render with
   `renderWithClient` from `src/test/utils.jsx` so each test gets a fresh QueryClient.
@@ -129,7 +145,14 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
 - **"Real-time" weather** means a debounced (~300 ms) location autocomplete. Picking a location fetches a 7-day
   forecast **once**. The Today / 3-day / 1-week filters slice that data on the client, with no extra request.
 - **Per-user isolation:** every task queryset is filtered by `owner=request.user`. Tests must check that one user
-  can't read or change another user's tasks (expect 404, not 403).
+  can't read or change another user's tasks (expect 404, not 403). Owner-scoped views must return
+  `Model.objects.none()` when `swagger_fake_view` is set, or OpenAPI generation fails.
+- **User model:** always reference it through `get_user_model()` / `settings.AUTH_USER_MODEL`. Keep both
+  `UserManager.normalize_email` (full lowercase) and the `iexact` `get_by_natural_key`, or duplicate accounts that
+  differ only by letter case become possible.
+- **Priority** is numeric in the database. Never sort or compare priorities as strings.
+- **API schema:** every new view gets `extend_schema` where the schema can't be inferred. `check --deploy` must stay
+  warning-free (drf-spectacular warnings count).
 - `Task` fields: `owner`, `title` (≤200), `description`, `priority` (`LOW|MEDIUM|HIGH|URGENT`), `is_completed`,
   `completed_at`, `due_date`, `is_outdoor`, timestamps. Index on (`owner`, `is_completed`, `priority`).
 - API is versioned under `/api/v1/`. DRF throttling applies to the auth and weather endpoints.

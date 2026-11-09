@@ -172,7 +172,7 @@ refactor/*─┘       ▲                │
 | `hotfix/<name>` | Urgent production fixes | `main` | `main` and `develop` |
 
 Conventions:
-- Short-lived branch names are kebab-case and have one purpose each. They are deleted after merging.
+- Short-lived branch names are kebab-case and have one purpose each. Merged branches are kept for reference.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/), e.g. `feat(tasks): add priority filter`.
 - `main`, `qa` and `develop` are protected by a GitHub ruleset: changes need a pull request, and force-pushes and
   deletion are blocked.
