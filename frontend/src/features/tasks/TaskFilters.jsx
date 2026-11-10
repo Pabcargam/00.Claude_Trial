@@ -26,6 +26,7 @@ export default function TaskFilters({ filters, onChange }) {
         ))}
       </div>
       <select
+        className={styles.prioritySelect}
         aria-label="Filter by priority"
         value={filters.priority}
         onChange={(event) => set('priority')(event.target.value)}
@@ -39,7 +40,7 @@ export default function TaskFilters({ filters, onChange }) {
       </select>
       <input
         type="search"
-        className={styles.grow}
+        className={styles.search}
         aria-label="Search tasks"
         placeholder="Search…"
         value={filters.search}

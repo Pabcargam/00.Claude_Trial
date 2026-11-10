@@ -218,6 +218,14 @@ export const fakeApiHandlers = [
     const task = db.tasks.find((t) => t.id === Number(params.id) && t.owner === user.id)
     if (!task) return notFound()
     const changes = await request.json()
+    // Same rule as the backend serializer: completed tasks are read-only until reopened.
+    const edits = Object.keys(changes).filter((key) => key !== 'is_completed')
+    if (task.is_completed && changes.is_completed !== false && edits.length) {
+      return HttpResponse.json(
+        { non_field_errors: ["Completed tasks can't be edited. Reopen the task first."] },
+        { status: 400 },
+      )
+    }
     Object.assign(task, changes)
     if ('is_completed' in changes) {
       task.completed_at = task.is_completed ? '2026-11-10T12:00:00Z' : null

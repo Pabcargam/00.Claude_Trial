@@ -77,6 +77,18 @@ select {
   background: var(--bg);
 }
 
+/* The native arrow sits against the border and padding can't move it, so draw our own
+   chevron 0.7rem in from the edge (mid-grey works on light and dark backgrounds). */
+select {
+  appearance: none;
+  padding-right: 2.1rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%239ca3af' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 0.7rem;
+  cursor: pointer;
+}
+
 input:focus-visible,
 select:focus-visible,
 button:focus-visible {

@@ -215,6 +215,38 @@ describe('tasks panel', () => {
     expect(nativeConfirm).not.toHaveBeenCalled()
   })
 
+  it('makes completed tasks read-only until reopened, but always deletable', async () => {
+    const user = userEvent.setup()
+    seedTask(pablo, { title: 'Finished chore', is_completed: true })
+    await renderDashboard()
+
+    const edit = await screen.findByRole('button', { name: 'Edit "Finished chore"' })
+    expect(edit).toBeDisabled()
+    expect(edit).toHaveAttribute('title', 'Reopen the task to edit it')
+    expect(screen.getByRole('button', { name: 'Delete "Finished chore"' })).toBeEnabled()
+
+    await user.click(screen.getByRole('checkbox', { name: 'Mark "Finished chore" as not done' }))
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Edit "Finished chore"' })).toBeEnabled(),
+    )
+    expect(screen.getByRole('button', { name: 'Edit "Finished chore"' })).toHaveAttribute(
+      'title',
+      'Edit task',
+    )
+  })
+
+  it('deletes a completed task', async () => {
+    const user = userEvent.setup()
+    seedTask(pablo, { title: 'Finished chore', is_completed: true })
+    await renderDashboard()
+
+    await user.click(await screen.findByRole('button', { name: 'Delete "Finished chore"' }))
+    await user.click(screen.getByRole('button', { name: 'Yes, delete' }))
+
+    await waitFor(() => expect(screen.queryByText('Finished chore')).not.toBeInTheDocument())
+  })
+
   it('filters by status and priority', async () => {
     const user = userEvent.setup()
     seedTask(pablo, { title: 'Buy milk', priority: 'LOW' })

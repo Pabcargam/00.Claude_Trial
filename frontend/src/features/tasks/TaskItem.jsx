@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PencilIcon, TrashIcon } from '../../components/icons'
 import { PRIORITIES, priorityLabel } from './priority'
 import styles from './Tasks.module.css'
 import { useDeleteTask, useUpdateTask } from './useTasks'
@@ -110,20 +111,50 @@ export default function TaskItem({ task }) {
           updateTask.mutate({ id: task.id, changes: { is_completed: !task.is_completed } })
         }
       />
-      <span className={styles.title}>{task.title}</span>
-      <span className={`${styles.badge} ${styles[task.priority.toLowerCase()]}`}>
-        {priorityLabel(task.priority)}
-      </span>
-      {task.due_date && <span className={styles.meta}>Due {formatDate(task.due_date)}</span>}
-      {task.is_outdoor && (
-        <span className={styles.outdoorBadge}>
-          <span aria-hidden="true">🌤</span> Outdoor
+      {/* Only this middle part wraps: tags drop under the title on narrow screens, while the
+          action icons keep the same position in every row (outdoor or not). */}
+      <div className={styles.main}>
+        <span className={styles.title}>{task.title}</span>
+        <span className={styles.tags}>
+          <span className={`${styles.badge} ${styles[task.priority.toLowerCase()]}`}>
+            {priorityLabel(task.priority)}
+          </span>
+          {task.due_date && <span className={styles.meta}>Due {formatDate(task.due_date)}</span>}
+          {task.is_outdoor && (
+            <span className={styles.outdoorBadge}>
+              <span aria-hidden="true">🌤</span> Outdoor
+            </span>
+          )}
         </span>
-      )}
+      </div>
 
-      {mode === 'confirm-delete' ? (
-        <span
-          className={styles.actions}
+      <span className={styles.actions}>
+        <button
+          type="button"
+          className={styles.iconButton}
+          aria-label={`Edit "${task.title}"`}
+          // Completed tasks are read-only: reopen first. Deleting is always allowed.
+          title={task.is_completed ? 'Reopen the task to edit it' : 'Edit task'}
+          disabled={task.is_completed || busy}
+          onClick={startEditing}
+        >
+          <PencilIcon />
+        </button>
+        <button
+          type="button"
+          className={`danger ${styles.iconButton}`}
+          aria-label={`Delete "${task.title}"`}
+          title="Delete task"
+          disabled={busy || mode === 'confirm-delete'}
+          onClick={() => setMode('confirm-delete')}
+        >
+          <TrashIcon />
+        </button>
+      </span>
+
+      {mode === 'confirm-delete' && (
+        <div
+          className={styles.confirmRow}
           role="group"
           aria-label={`Confirm deleting "${task.title}"`}
         >
@@ -141,22 +172,7 @@ export default function TaskItem({ task }) {
           <button type="button" onKeyDown={cancelOnEscape} onClick={() => setMode('view')}>
             Keep
           </button>
-        </span>
-      ) : (
-        <span className={styles.actions}>
-          <button type="button" aria-label={`Edit "${task.title}"`} onClick={startEditing}>
-            Edit
-          </button>
-          <button
-            type="button"
-            className="danger"
-            aria-label={`Delete "${task.title}"`}
-            disabled={busy}
-            onClick={() => setMode('confirm-delete')}
-          >
-            Delete
-          </button>
-        </span>
+        </div>
       )}
     </li>
   )
