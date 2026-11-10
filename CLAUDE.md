@@ -57,8 +57,8 @@ Pablo. It is project-independent and meant to be reused as-is in future projects
 (location search with autocomplete; filters for Today / 3 days / 1 week), so users can plan outdoor chores.
 See `README.md` for features, the planned API and the roadmap.
 
-**Current state:** Phases 1–3 are done: the backend is complete (scaffolding, JWT auth in `accounts`, tasks CRUD in
-`tasks`, cached Open-Meteo proxy in `weather`). Next: Phase 4 (frontend auth + TODO UI).
+**Current state:** Phases 1–4 are done: the backend is complete (JWT auth in `accounts`, tasks CRUD in `tasks`,
+cached Open-Meteo proxy in `weather`) and the frontend has auth plus the full TODO UI. Next: Phase 5 (weather panel).
 Keep the *Commands* section accurate. Do not document commands that don't work yet.
 
 ## Role
@@ -107,8 +107,8 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
                                                    └── Open-Meteo     (geocoding + forecast, no API key)
 ```
 
-- **Frontend** (`frontend/`): React 19 + Vite 8, **plain JavaScript (not TypeScript)**, TanStack Query, Axios, CSS Modules
-  (React Router arrives with auth). Tests: Vitest + React Testing Library + MSW.
+- **Frontend** (`frontend/`): React 19 + Vite 8, **plain JavaScript (not TypeScript)**, React Router 8, TanStack Query,
+  Axios, CSS Modules. Tests: Vitest + React Testing Library + MSW.
 - **Backend** (`backend/`): Django 6.1 + DRF; project package `config/`; apps `accounts/`, `tasks/`, `weather/`.
   SimpleJWT (access 15 min, refresh 7 days, rotation and blacklist), drf-spectacular (Swagger at `/api/docs/`),
   django-environ, django-cors-headers. Tests: pytest + pytest-django + factory_boy + `responses`. Coverage target ≥ 90%.
@@ -142,8 +142,23 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
   `mock_open_meteo` fixture (`weather/tests/conftest.py`) and payloads in `weather/tests/payloads.py`.
 - DRF defaults to `IsAuthenticated` and JSON-only rendering. Public endpoints (like health) opt out explicitly.
 - New API apps are mounted in the `api_v1` list in `backend/config/urls.py`.
-- Frontend tests: MSW handlers live in `src/test/server.js` (unhandled requests fail the test). Render with
-  `renderWithClient` from `src/test/utils.jsx` so each test gets a fresh QueryClient.
+- **Frontend auth:** `src/auth/tokenStore.js` keeps the access token in memory and the refresh token in
+  `localStorage` (key `todo-weather.refresh`). The interceptors in `src/api/client.js` add `Bearer`, and on a 401
+  refresh **once** (a single shared `refreshPromise`) and retry. A failed refresh clears the tokens and fires
+  `onSessionExpired`. `AuthProvider` restores the session on load (`status: loading → authenticated | anonymous`),
+  and logout/expiry clears the TanStack Query cache. `RequireAuth` / `GuestOnly` in `src/auth/RouteGuards.jsx` guard
+  routes. `displayName(user)` = first name or email local part.
+- **Frontend tasks** (`src/features/tasks/`): `TasksPanel` renders two cards, `TaskForm` ("New task") and the list
+  card ("Your tasks"), with `TaskFilters` in a toolbar. `TaskItem` is a 3-column grid (checkbox | title + tags |
+  icon actions). Only the middle wraps, so the actions stay aligned in every row. The modes are view, edit and
+  confirm-delete. Completed tasks have edit disabled; delete always works. Hooks in `useTasks.js` invalidate
+  `['tasks']` after writes, and the list keeps the server's order. Inputs, selects and buttons share one height
+  (`index.css`).
+- **Frontend tests** run the whole app (`renderApp({ route })` in `src/test/utils.jsx`) against
+  `src/test/fakeApi.js`, an in-memory MSW fake that mirrors the backend contract: rotation, blacklist, ownership 404s,
+  filters, ordering and read-only completed tasks. Helpers: `signIn`, `seedUser`, `seedTask`, `expireAccessTokens`,
+  `expireSession`. `src/test/setup.js` resets the fake API, the tokens and `localStorage` after every test.
+  Unhandled requests fail the test.
 
 ### Key design rules
 - **The frontend never calls Open-Meteo directly.** The `weather` app proxies it, normalises the response and caches it
@@ -159,6 +174,15 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
   `UserManager.normalize_email` (full lowercase) and the `iexact` `get_by_natural_key`, or duplicate accounts that
   differ only by letter case become possible.
 - **Priority** is numeric in the database. Never sort or compare priorities as strings.
+- **Completed tasks are read-only until reopened.** `TaskSerializer.validate` returns 400 for any change to a
+  completed task unless the request sets `is_completed: false`; deleting is always allowed. The UI reflects this
+  (edit disabled) but never replaces the API rule.
+- **Token storage** (Pablo's decision): access token in memory only, refresh token in `localStorage`. Don't move tokens
+  (e.g. to `httpOnly` cookies, planned for Phase 6) without Pablo's approval.
+- **No native browser dialogs** (`window.confirm`, `alert`, `prompt`): browsers can block or auto-dismiss them, which
+  broke deleting once. Use in-app UI (e.g. the inline delete confirmation).
+- **`src/test/fakeApi.js` mirrors the backend contract.** Any backend change to endpoints, validation or ordering
+  updates the fake in the same branch, or the frontend tests drift from reality.
 - **API schema:** every new view gets `extend_schema` where the schema can't be inferred. `check --deploy` must stay
   warning-free (drf-spectacular warnings count).
 - `Task` fields: `owner`, `title` (≤200), `description`, `priority` (`LOW|MEDIUM|HIGH|URGENT`), `is_completed`,
@@ -181,6 +205,8 @@ Each phase runs on its own `feature/*` branch (or several) from `develop`, and e
 ```bash
 docker compose up --build                 # full stack: frontend :5173, API :8000, Postgres :5433, Redis :6379
 docker compose exec backend python manage.py <cmd>   # migrate, createsuperuser, makemigrations...
+docker compose up -d --build -V frontend  # after frontend dependency changes (-V renews the node_modules volume)
+docker compose exec db psql -U todo -d todo_weather -c "SELECT * FROM tasks_task;"   # check data in PostgreSQL
 ```
 
 Backend (run from `backend/`, venv at `backend/.venv`, Python 3.12):
@@ -196,7 +222,7 @@ Frontend (run from `frontend/`). The lockfile is written by **npm 11**. The loca
 so use `npx -y npm@11 install <pkg>` when changing dependencies:
 ```bash
 npm test                                           # Vitest once; npm run test:watch for watch mode
-npx vitest run src/components/HealthBadge.test.jsx # single file
+npx vitest run src/features/tasks/TasksPanel.test.jsx  # single file
 npm run coverage                                   # thresholds 90%
 npm run lint && npm run format:check && npm run build
 ```

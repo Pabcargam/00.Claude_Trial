@@ -4,8 +4,8 @@ A web app for planning everyday tasks around the weather. You keep a **TODO list
 priorities, and next to it you see the **weather forecast** for any place you search. If a chore means
 going outside, you can pick the best day for it.
 
-> **Status:** 🏗️ Phase 3 done: the backend API is complete (accounts, tasks and cached weather) and tested.
-> Next up: the frontend (Phases 4 and 5).
+> **Status:** 🏗️ Phase 4 done: you can register, log in and manage your TODO list in the browser.
+> Next up: the weather panel in the frontend (Phase 5).
 
 ---
 
@@ -21,12 +21,16 @@ going outside, you can pick the best day for it.
 ## Features
 
 ### TODO list
-- Add tasks with a title, an optional description and a **priority** (`Low`, `Medium`, `High`, `Urgent`)
-- Edit the text and the priority inline
-- Mark a task as done (crossed out) or undo it
-- Delete tasks
-- Filter and sort by priority and status, and search by text
-- Optional due date and an "outdoor" flag to link tasks to the forecast
+- **New task** card: title, **priority** (`Low`, `Medium`, `High`, `Urgent`), optional due date and an
+  🌤 **Outdoor** flag for weather-dependent chores
+- **Your tasks** card: open tasks first, then most urgent, then soonest due date
+- Edit a task inline: title, priority, due date and outdoor flag (Escape cancels)
+- Mark a task as done (crossed out) or undo it. **Completed tasks are read-only** until reopened; the
+  API enforces this too
+- Delete any task, open or completed, after an in-app "Delete this task?" confirmation
+- Outdoor tasks stand out with a teal stripe, a tint and an "Outdoor" pill
+- Filter by status (All / Open / Done) and priority, and search by text as you type
+- An optional description is supported by the API (not shown in the UI yet)
 
 ### Weather
 - Location search box with autocomplete (debounced, so it updates as you type)
@@ -35,14 +39,16 @@ going outside, you can pick the best day for it.
 - Weather data is fetched by the backend and cached, so the frontend never calls third-party APIs
 
 ### Accounts
-- Register and log in (JWT access and refresh tokens)
+- Register and log in (JWT access and refresh tokens). Registering logs you in straight away
+- You stay logged in across page reloads (for up to 7 days of inactivity); Log out revokes the session
+- The header greets you by first name, or by the part of your email before the `@`
 - Each user only sees and changes their own tasks
 
 ## Tech stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 19, Vite 8, JavaScript, TanStack Query, Axios, CSS Modules (React Router comes with auth) |
+| Frontend | React 19, Vite 8, JavaScript, React Router 8, TanStack Query, Axios, CSS Modules |
 | Backend | Python 3.12, Django 6.1, Django REST Framework, SimpleJWT, django-filter, drf-spectacular (OpenAPI / Swagger) |
 | Database | PostgreSQL 16 |
 | Cache | Redis 7 (weather responses, rate limiting) |
@@ -101,6 +107,10 @@ and the weather endpoints to 60 per minute per user (`429` beyond that). Emails 
 | `due_date` | Optional, `YYYY-MM-DD` |
 | `is_outdoor` | Marks weather-dependent tasks |
 | `id`, `completed_at`, `created_at`, `updated_at` | Read-only |
+
+**Completed tasks are read-only.** A `PATCH` that changes anything on a completed task answers `400`
+("Completed tasks can't be edited. Reopen the task first."), unless the same request reopens it with
+`"is_completed": false`. Deleting a completed task is always allowed.
 
 **Listing tasks.** Query parameters:
 - Filters: `priority` (repeatable: `?priority=HIGH&priority=URGENT`), `completed`, `is_outdoor`, `due_before`, `due_after`
@@ -171,8 +181,14 @@ curl "localhost:8000/api/v1/weather/forecast/?lat=37.38&lon=-5.97&days=3" -H "Au
 │   ├── conftest.py         # Shared pytest fixtures
 │   ├── requirements/       # base.txt (runtime) and dev.txt (tests, lint)
 │   └── pyproject.toml      # Ruff, pytest and coverage config
-├── frontend/
-│   └── src/                # api/ (Axios client), components/, test/ (MSW setup)
+├── frontend/src/
+│   ├── api/                # Axios client (token refresh), auth/tasks endpoints, error parsing
+│   ├── auth/               # Token store, AuthProvider, useAuth, route guards
+│   ├── features/tasks/     # New task card, task list, filters, query hooks
+│   ├── pages/              # Login, Register, Dashboard
+│   ├── components/         # Shared UI: FormField, HealthBadge, icons
+│   ├── hooks/              # Generic hooks (debounce)
+│   └── test/               # MSW server, in-memory fake of the API, render helpers
 ├── .github/workflows/      # CI pipeline
 ├── docker-compose.yml      # Local development stack
 ├── .pre-commit-config.yaml # Lint/format hooks
@@ -217,7 +233,7 @@ Conventions:
 - [x] **Phase 1:** Scaffolding: repo skeleton, Docker Compose, CI, linting, health endpoint
 - [x] **Phase 2:** Backend: auth and tasks CRUD, with tests
 - [x] **Phase 3:** Backend: weather proxy with Redis cache, with tests
-- [ ] **Phase 4:** Frontend: auth and TODO list UI, with tests
+- [x] **Phase 4:** Frontend: auth and TODO list UI, with tests
 - [ ] **Phase 5:** Frontend: weather panel and forecast filters, with tests
 - [ ] **Phase 6:** Production compose with Nginx, Postman collection, polish and refactor
 
@@ -242,11 +258,26 @@ docker compose up --build
 | PostgreSQL | `localhost:5433` (user `todo`, db `todo_weather`) |
 | Redis | `localhost:6379` |
 
+Open <http://localhost:5173>, choose **Create one** to register, and you land on your TODO list.
+
 Every setting has a development default. To change something (for example a host port that's already
 in use), copy `.env.example` to `.env` and edit it. Create an admin user with:
 
 ```bash
 docker compose exec backend python manage.py createsuperuser
+```
+
+After changing frontend dependencies, rebuild with fresh volumes. Otherwise the container keeps its old
+`node_modules`:
+
+```bash
+docker compose up -d --build -V frontend
+```
+
+Inspect the data directly in PostgreSQL:
+
+```bash
+docker compose exec db psql -U todo -d todo_weather -c "SELECT id, title, priority, is_completed, owner_id FROM tasks_task;"
 ```
 
 ### Backend
@@ -273,10 +304,17 @@ npm ci
 npm test                 # Vitest, once
 npm run test:watch       # watch mode
 npm run coverage         # with coverage thresholds (90%)
-npx vitest run src/components/HealthBadge.test.jsx   # a single file
+npx vitest run src/features/tasks/TasksPanel.test.jsx   # a single file
 npm run lint && npm run format:check
 npm run build
 ```
+
+Frontend tests run the real app (routes, auth, queries) against an in-memory fake of the API built with
+MSW (`src/test/fakeApi.js`). It mirrors the backend contract, so tests cover full user flows without a server.
+
+**Security note:** the access token lives only in memory; the refresh token is kept in `localStorage` so
+you stay logged in after a reload. A planned hardening (Phase 6) is to move the refresh token to an
+`httpOnly` cookie, which JavaScript can't read.
 
 ### Git hooks
 
