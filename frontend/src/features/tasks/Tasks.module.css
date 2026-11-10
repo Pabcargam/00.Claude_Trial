@@ -75,13 +75,16 @@
   flex-direction: column;
 }
 
+/* Every row has the same left border (transparent unless outdoor) and horizontal padding,
+   so checkboxes line up and the outdoor tint extends past the Delete button. */
 .item {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.6rem 0;
+  padding: 0.6rem 0.75rem 0.6rem 0.6rem;
   border-bottom: 1px solid var(--border);
+  border-left: 4px solid transparent;
 }
 
 .item:last-child {
@@ -127,9 +130,30 @@
   font-weight: 600;
 }
 
+/* Outdoor tasks: tinted row with a teal stripe, plus a filled pill, so they stand out at a glance. */
+.outdoorItem {
+  border-left-color: var(--outdoor);
+  background: color-mix(in srgb, var(--outdoor) 7%, transparent);
+}
+
+.outdoorBadge {
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: var(--outdoor);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .actions {
   display: inline-flex;
+  align-items: center;
   gap: 0.4rem;
+}
+
+.confirmText {
+  font-size: 0.85rem;
+  color: var(--error);
 }
 
 .empty {

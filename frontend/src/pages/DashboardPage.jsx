@@ -1,3 +1,4 @@
+import { displayName } from '../auth/displayName'
 import { useAuth } from '../auth/useAuth'
 import HealthBadge from '../components/HealthBadge'
 import TasksPanel from '../features/tasks/TasksPanel'
@@ -10,14 +11,18 @@ export default function DashboardPage() {
     <div className={styles.app}>
       <header className={styles.header}>
         <h1>TODO + Weather Planner</h1>
-        <div className={styles.headerSide}>
+        {/* One bar: when it no longer fits beside the title it wraps as a whole,
+            keeping the API status and the account on the same line. */}
+        <div className={styles.statusBar}>
           <HealthBadge />
-          <span className={styles.user}>
-            Signed in as <strong>{user.first_name || user.email}</strong>
-          </span>
-          <button type="button" onClick={logout}>
-            Log out
-          </button>
+          <div className={styles.account}>
+            <span className={styles.user}>
+              Signed in as <strong>{displayName(user)}</strong>
+            </span>
+            <button type="button" className={styles.logout} onClick={logout}>
+              Log out
+            </button>
+          </div>
         </div>
       </header>
 

@@ -8,6 +8,8 @@
   --ok: #15803d;
   --warn: #b45309;
   --error: #b91c1c;
+  /* Outdoor tasks. Same in both themes: white text on it stays readable (5.4:1). */
+  --outdoor: #0f766e;
   --radius: 10px;
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
 

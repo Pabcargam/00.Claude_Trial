@@ -115,7 +115,8 @@ describe('authentication', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('Restoring your session…')
     expect(await screen.findByText('Water the plants')).toBeInTheDocument()
-    expect(screen.getByText('pablo@example.com')).toBeInTheDocument()
+    // No first name: greet with the part of the email before the "@".
+    expect(screen.getByText('pablo')).toBeInTheDocument()
   })
 
   it('treats an invalid stored refresh token as logged out', async () => {

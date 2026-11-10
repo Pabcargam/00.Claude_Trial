@@ -40,7 +40,9 @@ describe('tasks panel', () => {
     expect(screen.getByRole('heading', { name: 'Tasks (3)' })).toBeInTheDocument()
     const fence = screen.getByText('Paint fence').closest('li')
     expect(within(fence).getByText('High')).toBeInTheDocument()
-    expect(within(fence).getByText('Outdoor')).toBeInTheDocument()
+    expect(within(fence).getByText(/Outdoor/)).toBeInTheDocument()
+    expect(fence).toHaveClass('outdoorItem') // highlighted row
+    expect(screen.getByText('Buy milk').closest('li')).not.toHaveClass('outdoorItem')
     expect(within(fence).getByText(/^Due /)).toBeInTheDocument()
     expect(screen.queryByText('Not mine')).not.toBeInTheDocument()
   })
@@ -60,12 +62,12 @@ describe('tasks panel', () => {
     await user.type(title, '  Mow the lawn  ')
     await user.selectOptions(screen.getByLabelText('Priority'), 'URGENT')
     await user.type(screen.getByLabelText('Due date'), '2030-05-01')
-    await user.click(screen.getByLabelText('Outdoor'))
+    await user.click(screen.getByLabelText(/Outdoor/))
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
     const item = (await screen.findByText('Mow the lawn')).closest('li')
     expect(within(item).getByText('Urgent')).toBeInTheDocument()
-    expect(within(item).getByText('Outdoor')).toBeInTheDocument()
+    expect(within(item).getByText(/Outdoor/)).toBeInTheDocument()
     expect(fakeApi.tasks[0]).toMatchObject({ due_date: '2030-05-01', is_outdoor: true })
     expect(title).toHaveValue('')
     expect(screen.getByLabelText('Priority')).toHaveValue('MEDIUM')
@@ -107,7 +109,7 @@ describe('tasks panel', () => {
     ).not.toBeChecked()
   })
 
-  it('edits the title and priority inline', async () => {
+  it('edits title, priority, due date and outdoor flag inline', async () => {
     const user = userEvent.setup()
     seedTask(pablo, { title: 'Call mum', priority: 'LOW' })
     await renderDashboard()
@@ -119,11 +121,32 @@ describe('tasks panel', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
     await user.type(title, 'Call mum and dad')
     await user.selectOptions(screen.getByLabelText('Task priority'), 'HIGH')
+    await user.type(screen.getByLabelText('Task due date'), '2030-07-15')
+    await user.click(screen.getByLabelText('Task outdoor'))
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     const item = (await screen.findByText('Call mum and dad')).closest('li')
     expect(within(item).getByText('High')).toBeInTheDocument()
+    expect(within(item).getByText(/^Due /)).toBeInTheDocument()
+    expect(within(item).getByText(/Outdoor/)).toBeInTheDocument()
+    expect(fakeApi.tasks[0]).toMatchObject({ due_date: '2030-07-15', is_outdoor: true })
     expect(screen.queryByLabelText('Task title')).not.toBeInTheDocument()
+  })
+
+  it('clears a due date and the outdoor flag when editing', async () => {
+    const user = userEvent.setup()
+    seedTask(pablo, { title: 'Paint fence', due_date: '2030-06-10', is_outdoor: true })
+    await renderDashboard()
+
+    await user.click(await screen.findByRole('button', { name: 'Edit "Paint fence"' }))
+    expect(screen.getByLabelText('Task due date')).toHaveValue('2030-06-10')
+    expect(screen.getByLabelText('Task outdoor')).toBeChecked()
+    await user.clear(screen.getByLabelText('Task due date'))
+    await user.click(screen.getByLabelText('Task outdoor'))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(screen.queryByText(/^Due /)).not.toBeInTheDocument())
+    expect(fakeApi.tasks[0]).toMatchObject({ due_date: null, is_outdoor: false })
   })
 
   it('cancels editing with Escape or the Cancel button without saving', async () => {
@@ -142,22 +165,32 @@ describe('tasks panel', () => {
     expect(fakeApi.tasks[0].title).toBe('Call mum')
   })
 
-  it('deletes a task only after confirmation', async () => {
+  it('deletes a task only after the in-app confirmation (no browser dialog)', async () => {
     const user = userEvent.setup()
     seedTask(pablo, { title: 'Old chore' })
-    const confirm = vi.spyOn(window, 'confirm')
+    const nativeConfirm = vi.spyOn(window, 'confirm')
     await renderDashboard()
-    const deleteButton = await screen.findByRole('button', { name: 'Delete "Old chore"' })
 
-    confirm.mockReturnValueOnce(false)
-    await user.click(deleteButton)
+    // "Keep" cancels.
+    await user.click(await screen.findByRole('button', { name: 'Delete "Old chore"' }))
+    const confirmGroup = screen.getByRole('group', { name: 'Confirm deleting "Old chore"' })
+    expect(within(confirmGroup).getByText('Delete this task?')).toBeInTheDocument()
+    expect(within(confirmGroup).getByRole('button', { name: 'Yes, delete' })).toHaveFocus()
+    await user.click(within(confirmGroup).getByRole('button', { name: 'Keep' }))
     expect(screen.getByText('Old chore')).toBeInTheDocument()
 
-    confirm.mockReturnValueOnce(true)
-    await user.click(deleteButton)
+    // Escape cancels too.
+    await user.click(screen.getByRole('button', { name: 'Delete "Old chore"' }))
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('button', { name: 'Delete "Old chore"' })).toBeInTheDocument()
+    expect(fakeApi.tasks).toHaveLength(1)
+
+    // "Yes, delete" deletes.
+    await user.click(screen.getByRole('button', { name: 'Delete "Old chore"' }))
+    await user.click(screen.getByRole('button', { name: 'Yes, delete' }))
     await waitFor(() => expect(screen.queryByText('Old chore')).not.toBeInTheDocument())
-    expect(confirm).toHaveBeenLastCalledWith(`Delete "Old chore"? This can't be undone.`)
     expect(fakeApi.tasks).toHaveLength(0)
+    expect(nativeConfirm).not.toHaveBeenCalled()
   })
 
   it('filters by status and priority', async () => {

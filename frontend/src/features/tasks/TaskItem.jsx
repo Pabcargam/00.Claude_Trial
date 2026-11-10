@@ -12,61 +12,80 @@ function formatDate(isoDate) {
   })
 }
 
+function draftFrom(task) {
+  return {
+    title: task.title,
+    priority: task.priority,
+    due_date: task.due_date ?? '',
+    is_outdoor: task.is_outdoor,
+  }
+}
+
 export default function TaskItem({ task }) {
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState({ title: task.title, priority: task.priority })
+  // 'view' | 'edit' | 'confirm-delete'. The delete confirmation is in-app on purpose:
+  // native window.confirm() can be blocked or auto-dismissed by the browser.
+  const [mode, setMode] = useState('view')
+  const [draft, setDraft] = useState(() => draftFrom(task))
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
   const busy = updateTask.isPending || deleteTask.isPending
 
+  const setField = (field) => (event) => {
+    const { type, checked, value } = event.target
+    setDraft({ ...draft, [field]: type === 'checkbox' ? checked : value })
+  }
+
   function startEditing() {
-    setDraft({ title: task.title, priority: task.priority })
-    setEditing(true)
+    setDraft(draftFrom(task))
+    setMode('edit')
   }
 
   function save(event) {
     event.preventDefault()
-    updateTask.mutate(
-      { id: task.id, changes: { title: draft.title.trim(), priority: draft.priority } },
-      { onSuccess: () => setEditing(false) },
-    )
+    const changes = { ...draft, title: draft.title.trim(), due_date: draft.due_date || null }
+    updateTask.mutate({ id: task.id, changes }, { onSuccess: () => setMode('view') })
   }
 
-  function remove() {
-    if (window.confirm(`Delete "${task.title}"? This can't be undone.`)) deleteTask.mutate(task.id)
-  }
+  const cancelOnEscape = (event) => event.key === 'Escape' && setMode('view')
 
-  if (editing) {
+  if (mode === 'edit') {
     return (
       <li className={styles.item}>
-        <form
-          className={styles.editForm}
-          onSubmit={save}
-          onKeyDown={(event) => event.key === 'Escape' && setEditing(false)}
-        >
+        <form className={styles.editForm} onSubmit={save} onKeyDown={cancelOnEscape}>
           <input
             className={styles.grow}
             aria-label="Task title"
             maxLength={200}
             autoFocus
             value={draft.title}
-            onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+            onChange={setField('title')}
           />
-          <select
-            aria-label="Task priority"
-            value={draft.priority}
-            onChange={(event) => setDraft({ ...draft, priority: event.target.value })}
-          >
+          <select aria-label="Task priority" value={draft.priority} onChange={setField('priority')}>
             {PRIORITIES.map((p) => (
               <option key={p.value} value={p.value}>
                 {p.label}
               </option>
             ))}
           </select>
+          <input
+            type="date"
+            aria-label="Task due date"
+            value={draft.due_date}
+            onChange={setField('due_date')}
+          />
+          <label className={styles.checkLabel}>
+            <input
+              type="checkbox"
+              aria-label="Task outdoor"
+              checked={draft.is_outdoor}
+              onChange={setField('is_outdoor')}
+            />
+            <span aria-hidden="true">🌤</span> Outdoor
+          </label>
           <button type="submit" className="primary" disabled={!draft.title.trim() || busy}>
             Save
           </button>
-          <button type="button" onClick={() => setEditing(false)}>
+          <button type="button" onClick={() => setMode('view')}>
             Cancel
           </button>
         </form>
@@ -74,8 +93,14 @@ export default function TaskItem({ task }) {
     )
   }
 
+  const classes = [
+    styles.item,
+    task.is_completed && styles.done,
+    task.is_outdoor && styles.outdoorItem,
+  ]
+
   return (
-    <li className={`${styles.item} ${task.is_completed ? styles.done : ''}`}>
+    <li className={classes.filter(Boolean).join(' ')}>
       <input
         type="checkbox"
         aria-label={`Mark "${task.title}" as ${task.is_completed ? 'not done' : 'done'}`}
@@ -90,21 +115,49 @@ export default function TaskItem({ task }) {
         {priorityLabel(task.priority)}
       </span>
       {task.due_date && <span className={styles.meta}>Due {formatDate(task.due_date)}</span>}
-      {task.is_outdoor && <span className={styles.meta}>Outdoor</span>}
-      <span className={styles.actions}>
-        <button type="button" aria-label={`Edit "${task.title}"`} onClick={startEditing}>
-          Edit
-        </button>
-        <button
-          type="button"
-          className="danger"
-          aria-label={`Delete "${task.title}"`}
-          disabled={busy}
-          onClick={remove}
+      {task.is_outdoor && (
+        <span className={styles.outdoorBadge}>
+          <span aria-hidden="true">🌤</span> Outdoor
+        </span>
+      )}
+
+      {mode === 'confirm-delete' ? (
+        <span
+          className={styles.actions}
+          role="group"
+          aria-label={`Confirm deleting "${task.title}"`}
         >
-          Delete
-        </button>
-      </span>
+          <span className={styles.confirmText}>Delete this task?</span>
+          <button
+            type="button"
+            className="danger"
+            autoFocus
+            disabled={busy}
+            onKeyDown={cancelOnEscape}
+            onClick={() => deleteTask.mutate(task.id)}
+          >
+            Yes, delete
+          </button>
+          <button type="button" onKeyDown={cancelOnEscape} onClick={() => setMode('view')}>
+            Keep
+          </button>
+        </span>
+      ) : (
+        <span className={styles.actions}>
+          <button type="button" aria-label={`Edit "${task.title}"`} onClick={startEditing}>
+            Edit
+          </button>
+          <button
+            type="button"
+            className="danger"
+            aria-label={`Delete "${task.title}"`}
+            disabled={busy}
+            onClick={() => setMode('confirm-delete')}
+          >
+            Delete
+          </button>
+        </span>
+      )}
     </li>
   )
 }

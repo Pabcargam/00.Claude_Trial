@@ -42,7 +42,7 @@ export default function TaskForm() {
       <input type="date" aria-label="Due date" value={task.due_date} onChange={set('due_date')} />
       <label className={styles.checkLabel}>
         <input type="checkbox" checked={task.is_outdoor} onChange={set('is_outdoor')} />
-        Outdoor
+        <span aria-hidden="true">🌤</span> Outdoor
       </label>
       <button
         type="submit"
