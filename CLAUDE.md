@@ -120,14 +120,8 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
                                                    └── Open-Meteo     (geocoding + forecast, no API key)
 ```
 
-- **Frontend** (`frontend/`): React 19 + Vite 8, **plain JavaScript (not TypeScript)**, React Router 8, TanStack Query,
-  Axios, CSS Modules. Tests: Vitest + React Testing Library + MSW.
-- **Backend** (`backend/`): Django 6.1 + DRF; project package `config/`; apps `accounts/`, `tasks/`, `weather/`.
-  SimpleJWT (access 15 min, refresh 7 days, rotation and blacklist), drf-spectacular (Swagger at `/api/docs/`),
-  django-environ, django-cors-headers. Tests: pytest + pytest-django + factory_boy + `responses`. Coverage target ≥ 90%.
 - **Infra**: `docker-compose.yml` (dev, hot reload) and `docker-compose.prod.yml` (gunicorn + Nginx serving the built SPA);
   GitHub Actions CI runs lint and tests for both sides. Config comes from `.env` (template in `.env.example`).
-- **Quality**: Ruff (Python), oxlint + Prettier (JS), pre-commit (`.pre-commit-config.yaml`).
 
 ### How the pieces fit
 - **Same-origin API.** The SPA calls relative `/api/v1/...` (`frontend/src/api/client.js`). Vite proxies `/api` to Django in dev
@@ -153,8 +147,6 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
   around every test). Factories live in each app's `tests/factories.py`. `filterwarnings = ["error"]`: any warning fails
   the run. `core/tests/test_health.py` regenerates the OpenAPI schema with `--fail-on-warn`. Weather tests use the
   `mock_open_meteo` fixture (`weather/tests/conftest.py`) and payloads in `weather/tests/payloads.py`.
-- DRF defaults to `IsAuthenticated` and JSON-only rendering. Public endpoints (like health) opt out explicitly.
-- New API apps are mounted in the `api_v1` list in `backend/config/urls.py`.
 - **Frontend auth:** `src/auth/tokenStore.js` keeps the access token in memory and the refresh token in
   `localStorage` (key `todo-weather.refresh`). The interceptors in `src/api/client.js` add `Bearer`, and on a 401
   refresh **once** (a single shared `refreshPromise`) and retry. A failed refresh clears the tokens and fires
@@ -198,19 +190,11 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
   updates the fake in the same branch, or the frontend tests drift from reality.
 - **API schema:** every new view gets `extend_schema` where the schema can't be inferred. `check --deploy` must stay
   warning-free (drf-spectacular warnings count).
-- `Task` fields: `owner`, `title` (≤200), `description`, `priority` (`LOW|MEDIUM|HIGH|URGENT`), `is_completed`,
-  `completed_at`, `due_date`, `is_outdoor`, timestamps. Index on (`owner`, `is_completed`, `priority`).
 - API is versioned under `/api/v1/`. DRF throttling applies to the auth and weather endpoints.
 
 ## Delivery phases
 
-1. Scaffolding: Docker Compose, CI, linting, health endpoint
-2. Backend auth + tasks CRUD
-3. Backend weather proxy + Redis cache
-4. Frontend auth + TODO UI
-5. Frontend weather panel + filters
-6. Production compose/Nginx, Postman collection (`docs/postman/`), polish
-
+The phase list and its status live in `README.md` → *Roadmap* (Phase 6 adds the Postman collection in `docs/postman/`).
 Each phase runs on its own `feature/*` branch (or several) from `develop`, and ends with the README updated.
 
 ## Commands
