@@ -167,6 +167,60 @@ def test_complete_and_reopen_task(auth_client, user):
     assert reopened["completed_at"] is None
 
 
+# --- completed tasks are read-only until reopened -----------------------------------------
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"title": "Renamed"},
+        {"priority": "URGENT"},
+        {"due_date": "2030-01-01"},
+        {"is_outdoor": True},
+        {"description": "More details"},
+        {"title": "Renamed", "is_completed": True},
+    ],
+    ids=["title", "priority", "due-date", "outdoor", "description", "edit-while-staying-done"],
+)
+def test_completed_task_cannot_be_edited(auth_client, user, changes):
+    task = TaskFactory(owner=user, is_completed=True, title="Done chore")
+
+    response = auth_client.patch(detail(task.id), changes, format="json")
+
+    assert response.status_code == 400
+    assert "Reopen the task first" in response.json()["non_field_errors"][0]
+    task.refresh_from_db()
+    assert task.title == "Done chore"
+    assert task.is_completed is True
+
+
+def test_completed_task_can_be_reopened_and_edited_in_one_request(auth_client, user):
+    task = TaskFactory(owner=user, is_completed=True)
+
+    response = auth_client.patch(
+        detail(task.id), {"is_completed": False, "title": "Back on the list"}, format="json"
+    )
+
+    assert response.status_code == 200
+    assert response.json()["title"] == "Back on the list"
+    assert response.json()["is_completed"] is False
+
+
+def test_marking_a_completed_task_completed_again_is_harmless(auth_client, user):
+    task = TaskFactory(owner=user, is_completed=True)
+
+    response = auth_client.patch(detail(task.id), {"is_completed": True}, format="json")
+
+    assert response.status_code == 200
+
+
+def test_completed_task_can_be_deleted(auth_client, user):
+    task = TaskFactory(owner=user, is_completed=True)
+
+    assert auth_client.delete(detail(task.id)).status_code == 204
+    assert not Task.objects.filter(id=task.id).exists()
+
+
 def test_read_only_fields_cannot_be_written(auth_client, user):
     task = TaskFactory(owner=user)
 
