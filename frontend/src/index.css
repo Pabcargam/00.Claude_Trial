@@ -8,6 +8,8 @@
   --ok: #15803d;
   --warn: #b45309;
   --error: #b91c1c;
+  /* Outdoor tasks. Same in both themes: white text on it stays readable (5.4:1). */
+  --outdoor: #0f766e;
   --radius: 10px;
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
 
@@ -46,4 +48,77 @@ h1,
 h2 {
   color: var(--text-h);
   margin: 0;
+}
+
+a {
+  color: var(--accent);
+}
+
+input,
+select,
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* One control height for text/date inputs, selects and buttons (browser defaults differ by
+   several px), so form rows and toolbars line up. */
+input:not([type='checkbox']),
+select,
+button {
+  height: 2.4rem;
+}
+
+input,
+select {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+/* The native arrow sits against the border and padding can't move it, so draw our own
+   chevron 0.7rem in from the edge (mid-grey works on light and dark backgrounds). */
+select {
+  appearance: none;
+  padding-right: 2.1rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%239ca3af' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 0.7rem;
+  cursor: pointer;
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+button {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+button.danger {
+  color: var(--error);
 }

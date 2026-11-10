@@ -1,0 +1,63 @@
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* Title + status bar, all centred on the title's vertical middle. */
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Basis = its own content width, so it wraps below the title as one unit; it then grows to
+   fill the line, keeping the API badge on the left and the account on the far right. */
+.statusBar {
+  flex: 1 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.user {
+  font-size: 0.9rem;
+}
+
+/* Fixed red (not --error, which is light in dark mode) so white text stays readable: 4.8:1. */
+.logout {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.panel {
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+@media (max-width: 800px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

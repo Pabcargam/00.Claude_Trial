@@ -36,3 +36,14 @@ class TaskSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "completed_at", "created_at", "updated_at"]
         # DRF's CharField already trims whitespace and rejects blank titles.
+
+    def validate(self, attrs):
+        """Completed tasks are read-only until reopened (deleting never reaches this)."""
+        task = self.instance
+        reopening = attrs.get("is_completed") is False
+        edits = set(attrs) - {"is_completed"}
+        if task is not None and task.is_completed and not reopening and edits:
+            raise serializers.ValidationError(
+                "Completed tasks can't be edited. Reopen the task first.", code="task_completed"
+            )
+        return attrs
