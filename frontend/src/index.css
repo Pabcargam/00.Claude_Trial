@@ -61,6 +61,14 @@ button {
   color: inherit;
 }
 
+/* One control height for text/date inputs, selects and buttons (browser defaults differ by
+   several px), so form rows and toolbars line up. */
+input:not([type='checkbox']),
+select,
+button {
+  height: 2.4rem;
+}
+
 input,
 select {
   padding: 0.45rem 0.6rem;

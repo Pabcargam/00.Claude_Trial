@@ -1,3 +1,11 @@
+/* Left column of the dashboard: the "New task" card above the "Your tasks" card. */
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
 .panel {
   display: flex;
   flex-direction: column;
@@ -13,13 +21,53 @@
   color: var(--text);
 }
 
-.addForm,
-.editForm,
+/* New task: title on its own row, then priority + due date, then outdoor + Add. */
+.addForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start; /* labels always start on the same line */
+  gap: 0.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.field label {
+  font-size: 0.85rem;
+  color: var(--text-h);
+}
+
+.fullWidth {
+  flex-basis: 100%;
+}
+
+.formFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.editForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+/* Filters live in a tinted toolbar so they never read as part of task creation. */
 .filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+  padding: 0.6rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
 .editForm {

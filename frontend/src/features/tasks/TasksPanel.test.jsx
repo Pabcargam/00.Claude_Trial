@@ -37,7 +37,7 @@ describe('tasks panel', () => {
     await renderDashboard()
 
     await waitFor(() => expect(taskTitles()).toEqual(['Paint fence', 'Buy milk', 'Pay rent']))
-    expect(screen.getByRole('heading', { name: 'Tasks (3)' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Your tasks (3)' })).toBeInTheDocument()
     const fence = screen.getByText('Paint fence').closest('li')
     expect(within(fence).getByText('High')).toBeInTheDocument()
     expect(within(fence).getByText(/Outdoor/)).toBeInTheDocument()
@@ -50,20 +50,39 @@ describe('tasks panel', () => {
   it('shows an empty state for a new user', async () => {
     await renderDashboard()
 
-    expect(await screen.findByText('No tasks yet. Add your first one above.')).toBeInTheDocument()
+    expect(
+      await screen.findByText('No tasks yet. Add your first one in New task.'),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps creating and filtering in separate cards', async () => {
+    await renderDashboard()
+
+    const newTask = screen.getByRole('region', { name: 'New task' })
+    const yourTasks = screen.getByRole('region', { name: /^Your tasks/ })
+
+    // Creation controls only in "New task"...
+    expect(within(newTask).getByLabelText('Title')).toBeInTheDocument()
+    expect(within(newTask).getByLabelText('Priority')).toBeInTheDocument()
+    expect(within(newTask).getByRole('button', { name: 'Add task' })).toBeInTheDocument()
+    expect(within(newTask).queryByLabelText('Filter by priority')).not.toBeInTheDocument()
+    // ...filters only in "Your tasks".
+    expect(within(yourTasks).getByLabelText('Filter by priority')).toBeInTheDocument()
+    expect(within(yourTasks).getByLabelText('Search tasks')).toBeInTheDocument()
+    expect(within(yourTasks).queryByLabelText('Title')).not.toBeInTheDocument()
   })
 
   it('adds a task with priority, due date and outdoor flag, then resets the form', async () => {
     const user = userEvent.setup()
     await renderDashboard()
 
-    const title = screen.getByLabelText('New task')
-    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
+    const title = screen.getByLabelText('Title')
+    expect(screen.getByRole('button', { name: 'Add task' })).toBeDisabled()
     await user.type(title, '  Mow the lawn  ')
     await user.selectOptions(screen.getByLabelText('Priority'), 'URGENT')
     await user.type(screen.getByLabelText('Due date'), '2030-05-01')
     await user.click(screen.getByLabelText(/Outdoor/))
-    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.click(screen.getByRole('button', { name: 'Add task' }))
 
     const item = (await screen.findByText('Mow the lawn')).closest('li')
     expect(within(item).getByText('Urgent')).toBeInTheDocument()
@@ -85,8 +104,8 @@ describe('tasks panel', () => {
     )
     await renderDashboard()
 
-    await user.type(screen.getByLabelText('New task'), 'Too long')
-    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.type(screen.getByLabelText('Title'), 'Too long')
+    await user.click(screen.getByRole('button', { name: 'Add task' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('no more than 200 characters')
   })
@@ -145,7 +164,10 @@ describe('tasks panel', () => {
     await user.click(screen.getByLabelText('Task outdoor'))
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
-    await waitFor(() => expect(screen.queryByText(/^Due /)).not.toBeInTheDocument())
+    await waitFor(() => {
+      const row = screen.getByText('Paint fence').closest('li')
+      expect(within(row).queryByText(/^Due /)).not.toBeInTheDocument()
+    })
     expect(fakeApi.tasks[0]).toMatchObject({ due_date: null, is_outdoor: false })
   })
 

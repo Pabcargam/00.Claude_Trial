@@ -60,7 +60,8 @@ describe('authentication', () => {
     await user.click(screen.getByRole('button', { name: 'Create account' }))
 
     expect(await screen.findByText('Ana')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /Tasks/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'New task' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^Your tasks/ })).toBeInTheDocument()
   })
 
   it('shows field errors from the API when registration fails', async () => {
@@ -151,8 +152,8 @@ describe('authentication', () => {
     expireAccessTokens()
     const refreshesBefore = fakeApi.calls.refresh
 
-    await user.type(screen.getByLabelText('New task'), 'Buy paint')
-    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.type(screen.getByLabelText('Title'), 'Buy paint')
+    await user.click(screen.getByRole('button', { name: 'Add task' }))
 
     expect(await screen.findByText('Buy paint')).toBeInTheDocument()
     expect(fakeApi.calls.refresh).toBe(refreshesBefore + 1)
@@ -165,8 +166,8 @@ describe('authentication', () => {
     await screen.findByRole('button', { name: 'Log out' })
     expireSession()
 
-    await user.type(screen.getByLabelText('New task'), 'Buy paint')
-    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.type(screen.getByLabelText('Title'), 'Buy paint')
+    await user.click(screen.getByRole('button', { name: 'Add task' }))
 
     expect(await screen.findByRole('heading', { name: 'Log in' })).toBeInTheDocument()
   })
