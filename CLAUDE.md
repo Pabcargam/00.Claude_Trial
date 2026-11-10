@@ -19,12 +19,20 @@ Pablo. It is project-independent and meant to be reused as-is in future projects
 - Be meticulous: re-read and re-check finished work before reporting it done.
 - Every change ships with tests, and the tests are **run**, not just written. Report failures honestly.
 - Refactor when it makes the code clearer, but keep refactors separate from feature changes.
+- **One commit per logical part.** While working, notice when a part with a single purpose is finished and commit it
+  before starting code with a different purpose. Never bundle a whole phase into one code commit plus one docs commit.
+  - Example: a phase adding a token store, HTTP interceptors, an auth provider, a CRUD UI and its tests is at least
+    three commits: auth/token (store + interceptors + provider, they are all connected), CRUD, tests.
+  - Commit messages stay short and describe only that part. Every commit leaves the test suite passing.
 - **Pablo approves before…** Ask first, say exactly what will happen, and treat each approval as covering only that action.
   Never silently diverge from the agreed design.
   - Architecture or stack changes.
   - New technologies, which are added only when the plan needs them.
   - Every push and every merge (including PR merges), saying which branch goes where.
   - Deleting branches. Merged branches are kept unless Pablo asks to delete them.
+- **Ask instead of guessing.** When Claude doesn't know something (a requirement, a preference, a design choice,
+  missing information), ask Pablo before deciding it or guessing. Only choices with an obvious, standard convention
+  may go ahead without asking, and Claude says which option it picked.
 - Pablo is experienced in backend and DevOps (Django, Docker, Kubernetes, CI/CD), so skip the basics there. Pablo is
   learning Claude Code, so briefly explaining Claude Code features or workflows when they come up is useful.
 - **Keep docs up to date.** Every phase or feature that changes setup, commands, the API, the architecture or the
@@ -37,15 +45,20 @@ Pablo. It is project-independent and meant to be reused as-is in future projects
   for `README.md` and `CLAUDE.md` and applies to every hand-written file. Shell commands may only produce generated files
   (migrations, lockfiles, formatter and linter fixes).
 - **Explain all the changes to Pablo.** Pablo wants to understand the reason behind every change, not just see the
-  result. Before creating or editing any file, write a short explanation in the message right before the tool call,
-  so it sits next to the permission prompt.
-  - Format: **`path/to/file`**: what the file is for (one line) → what this change does and why (one or two lines).
-  - Batched changes: when several related files are written together (for example a new Django app), give one
-    explanation per file in a compact list before the batch, not one long paragraph.
-  - Generated or tool-modified files (migrations, lockfiles, formatter fixes) get a one-line note saying which command
-    produced them and why.
-  - Keep it short and concrete. Explain the *why* (design reason, trade-off, which rule or phase it serves), not just
-    the obvious *what*.
+  result. How depends on the permission mode Pablo is using:
+  - **Normal mode (Pablo approves each edit):** before creating or editing any file, write a short explanation in the
+    message right before the tool call, so it sits next to the permission prompt.
+    - Format: **`path/to/file`**: what the file is for (one line) → what this change does and why (one or two lines).
+    - Batched changes: when several related files are written together (for example a new Django app), give one
+      explanation per file in a compact list before the batch, not one long paragraph.
+    - Generated or tool-modified files (migrations, lockfiles, formatter fixes) get a one-line note saying which
+      command produced them and why.
+  - **Auto mode:** no per-file notes. When a subtask/step of the running plan is finished, send **one complete
+    explanation** of that step: what was done (files and changes), why it was needed, and any decisions or
+    trade-offs. In big phases Pablo then reads one wholesome summary per step instead of scrolling for many small texts.
+  - Detecting the mode: Claude Code notifies Claude when Auto mode is turned on or off. When unsure, use normal mode.
+  - In both modes keep it concrete. Explain the *why* (design reason, trade-off, which rule or phase it serves), not
+    just the obvious *what*.
 
 > [!WARNING]
 > 🟠 **PROJECT-SPECIFIC: rewrite for every new project.** Everything from here to the end of the file describes
@@ -87,7 +100,7 @@ Work like a senior developer on a team. The branch model is documented in `READM
 **Rules for Claude**
 - Run `git pull` on the base branch before creating a branch and before merging. Rebase or merge `develop` into long-running
   feature branches regularly.
-- Commit often, in small logical steps. Use Conventional Commits with a scope where useful
+- Commit often, one logical part per commit (see *Working agreement → One commit per logical part*). Use Conventional Commits with a scope where useful
   (`feat(tasks): add priority filter`, `fix(weather): handle empty geocoding result`, `test:`, `refactor:`, `docs:`, `chore:`, `ci:`).
   The subject is imperative and ≤ 72 chars, and the body explains *why* when that isn't obvious. Never commit failing tests or secrets.
 - Committing on a short-lived branch needs no approval. Pushes and merges do (see *Working agreement*).
