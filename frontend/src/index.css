@@ -122,3 +122,27 @@ button.primary {
 button.danger {
   color: var(--error);
 }
+
+/* Segmented control: a row of joined toggle buttons, the pressed one filled (task status and
+   forecast range filters). */
+.segmented {
+  display: inline-flex;
+}
+
+.segmented button {
+  border-radius: 0;
+}
+
+.segmented button:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.segmented button:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}

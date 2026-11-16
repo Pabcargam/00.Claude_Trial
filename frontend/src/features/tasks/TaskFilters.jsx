@@ -13,7 +13,7 @@ export default function TaskFilters({ filters, onChange }) {
 
   return (
     <div className={styles.filters}>
-      <div role="group" aria-label="Filter by status" className={styles.segmented}>
+      <div role="group" aria-label="Filter by status" className="segmented">
         {STATUSES.map((s) => (
           <button
             key={s.value}

@@ -104,28 +104,6 @@
   font-size: 0.9rem;
 }
 
-.segmented {
-  display: inline-flex;
-}
-
-.segmented button {
-  border-radius: 0;
-}
-
-.segmented button:first-child {
-  border-radius: 6px 0 0 6px;
-}
-
-.segmented button:last-child {
-  border-radius: 0 6px 6px 0;
-}
-
-.segmented button[aria-pressed='true'] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
 .list {
   list-style: none;
   margin: 0;
