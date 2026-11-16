@@ -31,7 +31,12 @@ export default function DashboardPage() {
 
       <main className={styles.grid}>
         <TasksPanel />
-        <WeatherPanel location={weather.location} onSelectLocation={weather.selectLocation} />
+        <WeatherPanel
+          location={weather.location}
+          onSelectLocation={weather.selectLocation}
+          days={weather.days}
+          onChangeDays={weather.setDays}
+        />
       </main>
     </div>
   )

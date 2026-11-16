@@ -19,6 +19,88 @@
   font-weight: 600;
 }
 
+/* Read by screen readers, not shown (labels for the 💧 / 💨 emoji). */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.muted {
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+/* Place name on the left, range filter on the right; the filter wraps below when narrow. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--error);
+}
+
+.error p {
+  margin: 0;
+}
+
+/* Daily forecast: [emoji] [day + description] [temperatures + rain/wind], one row per day. */
+.days {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.day {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.day:first-child {
+  border-top: none;
+}
+
+.emoji {
+  font-size: 1.6rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.dayMain,
+.dayStats {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dayMain strong,
+.dayStats strong {
+  color: var(--text-h);
+}
+
+.dayStats {
+  align-items: flex-end;
+  text-align: right;
+}
+
 /* Location search: the suggestion list floats over the content below the input. */
 .search {
   position: relative;
