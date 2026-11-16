@@ -1,35 +1,45 @@
 import { dayLabel, degrees, weatherEmoji } from './format'
 import styles from './Weather.module.css'
 
-/** One row per day: icon, day + description, max/min, rain chance and wind. */
-export default function ForecastList({ days, units }) {
+/**
+ * One row per day: icon, day + description, max/min, rain chance and wind. Each row is a
+ * toggle button that opens (or closes) that day's 24-hour card.
+ */
+export default function ForecastList({ days, units, selectedDate, onSelectDate }) {
   return (
     <ul className={styles.days} aria-label="Daily forecast">
       {days.map((day, index) => (
-        <li key={day.date} className={styles.day}>
-          <span className={styles.emoji} aria-hidden="true">
-            {weatherEmoji(day.icon)}
-          </span>
-          <span className={styles.dayMain}>
-            <strong>{dayLabel(day.date, index)}</strong>
-            <span className={styles.muted}>{day.description}</span>
-          </span>
-          <span className={styles.dayStats}>
-            <span>
-              <strong>{degrees(day.temperature_max)}</strong>{' '}
-              <span className={styles.muted}>/ {degrees(day.temperature_min)}</span>
+        <li key={day.date}>
+          <button
+            type="button"
+            className={styles.day}
+            aria-pressed={day.date === selectedDate}
+            onClick={() => onSelectDate(day.date === selectedDate ? null : day.date)}
+          >
+            <span className={styles.emoji} aria-hidden="true">
+              {weatherEmoji(day.icon)}
             </span>
-            <span className={styles.muted}>
-              <Stat emoji="💧" label="Rain chance">
-                {day.precipitation_probability ?? '–'}
-                {units.probability}
-              </Stat>
-              {' · '}
-              <Stat emoji="💨" label="Wind">
-                {Math.round(day.wind_speed_max)} {units.wind_speed}
-              </Stat>
+            <span className={styles.dayMain}>
+              <strong>{dayLabel(day.date, index)}</strong>
+              <span className={styles.muted}>{day.description}</span>
             </span>
-          </span>
+            <span className={styles.dayStats}>
+              <span>
+                <strong>{degrees(day.temperature_max)}</strong>{' '}
+                <span className={styles.muted}>/ {degrees(day.temperature_min)}</span>
+              </span>
+              <span className={styles.muted}>
+                <Stat emoji="💧" label="Rain chance">
+                  {day.precipitation_probability ?? '–'}
+                  {units.probability}
+                </Stat>
+                {' · '}
+                <Stat emoji="💨" label="Wind">
+                  {Math.round(day.wind_speed_max)} {units.wind_speed}
+                </Stat>
+              </span>
+            </span>
+          </button>
         </li>
       ))}
     </ul>

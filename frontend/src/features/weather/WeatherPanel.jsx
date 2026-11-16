@@ -6,7 +6,14 @@ import { useForecast } from './useWeather'
 import styles from './Weather.module.css'
 
 /** The weather card: location search, then the forecast of the picked place. */
-export default function WeatherPanel({ location, onSelectLocation, days, onChangeDays }) {
+export default function WeatherPanel({
+  location,
+  onSelectLocation,
+  days,
+  onChangeDays,
+  selectedDate,
+  onSelectDate,
+}) {
   const forecast = useForecast(location)
 
   return (
@@ -19,7 +26,12 @@ export default function WeatherPanel({ location, onSelectLocation, days, onChang
             <p className={styles.place}>{placeLabel(location)}</p>
             <ForecastFilters days={days} onChange={onChangeDays} />
           </div>
-          <Forecast query={forecast} days={days} />
+          <Forecast
+            query={forecast}
+            days={days}
+            selectedDate={selectedDate}
+            onSelectDate={onSelectDate}
+          />
         </>
       ) : (
         <p className={styles.hint}>
@@ -30,7 +42,7 @@ export default function WeatherPanel({ location, onSelectLocation, days, onChang
   )
 }
 
-function Forecast({ query, days }) {
+function Forecast({ query, days, selectedDate, onSelectDate }) {
   if (query.isPending) return <p role="status">Loading forecast…</p>
   if (query.isError) {
     return (
@@ -43,5 +55,12 @@ function Forecast({ query, days }) {
     )
   }
   // One 7-day response serves every range: the filters only slice it.
-  return <ForecastList days={query.data.daily.slice(0, days)} units={query.data.units} />
+  return (
+    <ForecastList
+      days={query.data.daily.slice(0, days)}
+      units={query.data.units}
+      selectedDate={selectedDate}
+      onSelectDate={onSelectDate}
+    />
+  )
 }

@@ -65,17 +65,33 @@
   flex-direction: column;
 }
 
+.days li + li {
+  border-top: 1px solid var(--border);
+}
+
+/* Each row is a toggle button (opens the day's 24-hour card): reset the global button look. */
 .day {
+  position: relative; /* contains the visually hidden labels */
   display: grid;
   grid-template-columns: 2.25rem 1fr auto;
   align-items: center;
   gap: 0.75rem;
+  width: 100%;
+  height: auto;
   padding: 0.6rem 0.5rem;
-  border-top: 1px solid var(--border);
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
 }
 
-.day:first-child {
-  border-top: none;
+.day:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.day[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .emoji {
@@ -99,6 +115,79 @@
 .dayStats {
   align-items: flex-end;
   text-align: right;
+}
+
+/* Day detail: the last item of the dashboard grid, spanning both columns. */
+.detail {
+  composes: panel;
+  grid-column: 1 / -1;
+}
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.close {
+  width: 2.4rem;
+  padding: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+/* 24 hourly tiles: 8 x 3 on wide screens, 6 x 4 on medium ones (always full rows). */
+.hours {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.hour {
+  position: relative; /* keeps the visually hidden labels inside the tile (and the strip) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.6rem 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  text-align: center;
+}
+
+.hour strong {
+  color: var(--text-h);
+}
+
+.hourTime {
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .hours {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+/* Phones and small windows: one row of tiles you swipe sideways, like weather apps. */
+@media (max-width: 600px) {
+  .hours {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 0.5rem;
+  }
+
+  .hour {
+    flex: 0 0 4.75rem;
+    scroll-snap-align: start;
+  }
 }
 
 /* Location search: the suggestion list floats over the content below the input. */
