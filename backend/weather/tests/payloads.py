@@ -72,5 +72,6 @@ def forecast_payload(days: int = 7) -> dict:
             "precipitation_probability": [None if i == 0 else 20 for i in range(len(hours))],
             "weather_code": [1] * len(hours),
             "wind_speed_10m": [9.2] * len(hours),
+            "is_day": [1 if 7 <= int(h[11:13]) < 19 else 0 for h in hours],
         },
     }
