@@ -17,8 +17,18 @@ const EMOJI = {
   thunderstorm: '⛈️',
 }
 
-export function weatherEmoji(icon) {
-  return EMOJI[icon] ?? '❔'
+// After sunset no sun may show: a clear night gets the moon, and the "sun + cloud" icons lose
+// the sun (there is no single moon + cloud / moon + rain emoji). The rest have no sun anyway.
+const NIGHT_EMOJI = {
+  clear: '🌙',
+  'partly-cloudy': '☁️',
+  drizzle: '🌧️',
+  showers: '🌧️',
+}
+
+/** Emoji for an icon key; `isDay: false` (between sunset and sunrise) gives the night version. */
+export function weatherEmoji(icon, isDay = true) {
+  return (!isDay && NIGHT_EMOJI[icon]) || EMOJI[icon] || '❔'
 }
 
 /** 17.6 → "18°" */

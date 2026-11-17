@@ -44,7 +44,8 @@ export default function DayDetail({ location, days, date, onClose }) {
           <li key={hour.time} className={styles.hour}>
             <span className={styles.hourTime}>{hour.time.slice(11, 16)}</span>
             <span className={styles.emoji} role="img" aria-label={hour.description}>
-              {weatherEmoji(hour.icon)}
+              {/* Only an explicit false is night: forecasts cached before is_day existed stay "day". */}
+              {weatherEmoji(hour.icon, hour.is_day !== false)}
             </span>
             <strong>{degrees(hour.temperature)}</strong>
             <span className={styles.muted}>
