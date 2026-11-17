@@ -4,8 +4,8 @@ A web app for planning everyday tasks around the weather. You keep a **TODO list
 priorities, and next to it you see the **weather forecast** for any place you search. If a chore means
 going outside, you can pick the best day for it.
 
-> **Status:** 🏗️ Phase 4 done: you can register, log in and manage your TODO list in the browser.
-> Next up: the weather panel in the frontend (Phase 5).
+> **Status:** 🏗️ Phase 5 done: the TODO list and the weather forecast both work in the browser.
+> Next up: production setup with Nginx, a Postman collection and polish (Phase 6).
 
 ---
 
@@ -33,10 +33,17 @@ going outside, you can pick the best day for it.
 - An optional description is supported by the API (not shown in the UI yet)
 
 ### Weather
-- Location search box with autocomplete (debounced, so it updates as you type)
-- Forecast filters: **Current day**, **3 days**, **1 week**
-- Daily summary (min/max temperature, chance of rain, wind, weather icon) plus hourly detail for today
-- Weather data is fetched by the backend and cached, so the frontend never calls third-party APIs
+- Location search with autocomplete: suggestions appear as you type (after a 300 ms pause, from 2
+  letters), and you pick one with the mouse or the keyboard (↑/↓, Enter, Escape)
+- The picked place is remembered in this browser, per user, and restored on your next visit
+- Forecast filters: **Today**, **3 days**, **1 week**. One 7-day forecast is loaded per place and the
+  filters only slice it, so switching is instant
+- One row per day: weather emoji, description, max/min temperature, chance of rain and wind
+- Click a day to open its **24-hour card** below the task and weather cards, with one tile per hour
+  (temperature, rain chance, wind). It's a tile grid on wide screens and a sideways swipe strip on
+  phones (under 600px). Click the day again or × to close it
+- Weather data is fetched by the backend and cached, so the frontend never calls third-party APIs. If
+  the weather service is down, the panel says so and offers Retry
 
 ### Accounts
 - Register and log in (JWT access and refresh tokens). Registering logs you in straight away
@@ -182,9 +189,10 @@ curl "localhost:8000/api/v1/weather/forecast/?lat=37.38&lon=-5.97&days=3" -H "Au
 │   ├── requirements/       # base.txt (runtime) and dev.txt (tests, lint)
 │   └── pyproject.toml      # Ruff, pytest and coverage config
 ├── frontend/src/
-│   ├── api/                # Axios client (token refresh), auth/tasks endpoints, error parsing
+│   ├── api/                # Axios client (token refresh), auth/tasks/weather endpoints, error parsing
 │   ├── auth/               # Token store, AuthProvider, useAuth, route guards
 │   ├── features/tasks/     # New task card, task list, filters, query hooks
+│   ├── features/weather/   # Location search, forecast list + filters, 24-hour day card, hooks
 │   ├── pages/              # Login, Register, Dashboard
 │   ├── components/         # Shared UI: FormField, HealthBadge, icons
 │   ├── hooks/              # Generic hooks (debounce)
@@ -234,7 +242,7 @@ Conventions:
 - [x] **Phase 2:** Backend: auth and tasks CRUD, with tests
 - [x] **Phase 3:** Backend: weather proxy with Redis cache, with tests
 - [x] **Phase 4:** Frontend: auth and TODO list UI, with tests
-- [ ] **Phase 5:** Frontend: weather panel and forecast filters, with tests
+- [x] **Phase 5:** Frontend: weather panel, forecast filters and 24-hour day card, with tests
 - [ ] **Phase 6:** Production compose with Nginx, Postman collection, polish and refactor
 
 ## Getting started
@@ -314,7 +322,8 @@ MSW (`src/test/fakeApi.js`). It mirrors the backend contract, so tests cover ful
 
 **Security note:** the access token lives only in memory; the refresh token is kept in `localStorage` so
 you stay logged in after a reload. A planned hardening (Phase 6) is to move the refresh token to an
-`httpOnly` cookie, which JavaScript can't read.
+`httpOnly` cookie, which JavaScript can't read. The last picked weather location is also kept in
+`localStorage` (`todo-weather.location.<userId>`: place name and coordinates only).
 
 ### Git hooks
 
