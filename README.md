@@ -42,6 +42,8 @@ going outside, you can pick the best day for it.
 - Click a day to open its **24-hour card** below the task and weather cards, with one tile per hour
   (temperature, rain chance, wind). It's a tile grid on wide screens and a sideways swipe strip on
   phones (under 600px). Click the day again or × to close it
+- Between the real sunset and sunrise of the place, hours show night icons: a clear sky shows 🌙, and
+  "sun + cloud/rain" icons lose the sun (☁️, 🌧️)
 - Weather data is fetched by the backend and cached, so the frontend never calls third-party APIs. If
   the weather service is down, the panel says so and offers Retry
 
@@ -141,11 +143,13 @@ tasks: another user's task answers `404`, as if it didn't exist.
              "precipitation_probability": 100, "precipitation_sum": 17.1, "wind_speed_max": 19.6,
              "weather_code": 95, "description": "Thunderstorm", "icon": "thunderstorm"}],
   "hourly": [{"time": "2026-11-09T00:00", "temperature": 18.8, "precipitation_probability": 78,
-              "wind_speed": 9.2, "weather_code": 95, "description": "Thunderstorm", "icon": "thunderstorm"}]
+              "wind_speed": 9.2, "is_day": false, "weather_code": 95, "description": "Thunderstorm",
+              "icon": "thunderstorm"}]
 }
 ```
 
-- `hourly` holds 24 rows per selected day, in the location's local time.
+- `hourly` holds 24 rows per selected day, in the location's local time. `is_day` is `false` between
+  the location's sunset and sunrise.
 - `icon` is one of `clear`, `partly-cloudy`, `cloudy`, `fog`, `drizzle`, `rain`, `freezing-rain`, `showers`, `snow`,
   `thunderstorm` or `unknown`.
 - Caching (Redis): a forecast is kept for 15 minutes per ~1 km area (coordinates rounded to 2 decimals), so data
