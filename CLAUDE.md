@@ -169,6 +169,9 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
   Tiles: 8×3 grid, 6×4 at ≤ 900px, swipe strip at ≤ 600px. The picked place is saved per user in `localStorage`
   (`savedLocation.js`, key `todo-weather.location.<userId>`; storage errors mean "nothing saved"). Display helpers
   are in `format.js`: dates are calendar dates formatted in UTC, so the viewer's timezone can't shift them.
+  `weatherEmoji(icon, isDay)`: hourly tiles pass the backend's per-hour `is_day` (real sunset/sunrise); at night
+  no sun shows (clear → 🌙, partly cloudy → ☁️, drizzle/showers → 🌧️). A missing flag (older cache) counts as day.
+  Daily rows always use day icons.
 - **Frontend tests** run the whole app (`renderApp({ route })` in `src/test/utils.jsx`) against
   `src/test/fakeApi.js`, an in-memory MSW fake that mirrors the backend contract: rotation, blacklist, ownership 404s,
   filters, ordering, read-only completed tasks and the weather proxy. Helpers: `signIn`, `seedUser`, `seedTask`,
