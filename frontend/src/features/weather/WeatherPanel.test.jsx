@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   LOCATIONS,
@@ -114,7 +114,8 @@ describe('weather panel', () => {
       if (request.url.includes('/weather/locations/')) searches()
     })
     await user.type(searchBox(), 's')
-    await new Promise((resolve) => setTimeout(resolve, 400)) // past the 300 ms debounce
+    // Past the 300 ms debounce. Inside act(): the debounced state update happens during the wait.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 400)))
     expect(searches).not.toHaveBeenCalled()
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
     expect(screen.queryByText('Searching…')).not.toBeInTheDocument()
