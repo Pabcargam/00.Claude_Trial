@@ -103,6 +103,9 @@ def test_forecast_is_normalised_into_rows(mock_open_meteo, forecast_url):
     assert forecast["daily"][6]["icon"] == "unknown"
     assert len(forecast["hourly"]) == 168
     assert forecast["hourly"][0]["precipitation_probability"] is None
+    # Open-Meteo's 0/1 day flag becomes a boolean: midnight is night, noon is day.
+    assert forecast["hourly"][0]["is_day"] is False
+    assert forecast["hourly"][12]["is_day"] is True
 
 
 @pytest.mark.parametrize("days", [1, 3, 7])

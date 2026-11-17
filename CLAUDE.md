@@ -24,6 +24,8 @@ Pablo. It is project-independent and meant to be reused as-is in future projects
   - Example: a phase adding a token store, HTTP interceptors, an auth provider, a CRUD UI and its tests is at least
     three commits: auth/token (store + interceptors + provider, they are all connected), CRUD, tests.
   - Commit messages stay short and describe only that part. Every commit leaves the test suite passing.
+  - Tests may get their own commit after the code they cover. Intermediate commits may then dip below the
+    coverage gate; it must pass at the tip of the branch (which is what CI checks on the PR).
 - **Pablo approves before…** Ask first, say exactly what will happen, and treat each approval as covering only that action.
   Never silently diverge from the agreed design.
   - Architecture or stack changes.
@@ -70,8 +72,9 @@ Pablo. It is project-independent and meant to be reused as-is in future projects
 (location search with autocomplete; filters for Today / 3 days / 1 week), so users can plan outdoor chores.
 See `README.md` for features, the planned API and the roadmap.
 
-**Current state:** Phases 1–4 are done: the backend is complete (JWT auth in `accounts`, tasks CRUD in `tasks`,
-cached Open-Meteo proxy in `weather`) and the frontend has auth plus the full TODO UI. Next: Phase 5 (weather panel).
+**Current state:** Phases 1–5 are done: the backend is complete (JWT auth in `accounts`, tasks CRUD in `tasks`,
+cached Open-Meteo proxy in `weather`) and the frontend has auth, the full TODO UI and the weather panel with its
+24-hour day card. Next: Phase 6 (production compose/Nginx, Postman, polish).
 Keep the *Commands* section accurate. Do not document commands that don't work yet.
 
 ## Role
@@ -158,12 +161,24 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
   icon actions). Only the middle wraps, so the actions stay aligned in every row. The modes are view, edit and
   confirm-delete. Completed tasks have edit disabled; delete always works. Hooks in `useTasks.js` invalidate
   `['tasks']` after writes, and the list keeps the server's order. Inputs, selects and buttons share one height
-  (`index.css`).
+  (`index.css`, which also holds the shared `.segmented` toggle style).
+- **Frontend weather** (`src/features/weather/`): the selection (location, range in days, open day) lives in the
+  dashboard via `useWeatherSelection`, because two cards share it: `WeatherPanel` (combobox `LocationSearch`,
+  `ForecastFilters`, `ForecastList` whose day rows are `aria-pressed` toggles) and `DayDetail`, the full-width
+  24-hour card (last grid item, `grid-column: 1 / -1`). Both call `useForecast(location)`, i.e. the same cached query.
+  Tiles: 8×3 grid, 6×4 at ≤ 900px, swipe strip at ≤ 600px. The picked place is saved per user in `localStorage`
+  (`savedLocation.js`, key `todo-weather.location.<userId>`; storage errors mean "nothing saved"). Display helpers
+  are in `format.js`: dates are calendar dates formatted in UTC, so the viewer's timezone can't shift them.
+  `weatherEmoji(icon, isDay)`: hourly tiles pass the backend's per-hour `is_day` (real sunset/sunrise); at night
+  no sun shows (clear → 🌙, partly cloudy → ☁️, drizzle/showers → 🌧️). A missing flag (older cache) counts as day.
+  Daily rows always use day icons.
 - **Frontend tests** run the whole app (`renderApp({ route })` in `src/test/utils.jsx`) against
   `src/test/fakeApi.js`, an in-memory MSW fake that mirrors the backend contract: rotation, blacklist, ownership 404s,
-  filters, ordering and read-only completed tasks. Helpers: `signIn`, `seedUser`, `seedTask`, `expireAccessTokens`,
-  `expireSession`. `src/test/setup.js` resets the fake API, the tokens and `localStorage` after every test.
-  Unhandled requests fail the test.
+  filters, ordering, read-only completed tasks and the weather proxy. Helpers: `signIn`, `seedUser`, `seedTask`,
+  `expireAccessTokens`, `expireSession`, `failWeather` / `restoreWeather` (503), `LOCATIONS`, `fakeApi.calls`.
+  `src/test/setup.js` resets the fake API, the tokens and `localStorage` after every test, and lets async queries
+  wait up to 3 s (debounce + request on slow CI). Unhandled requests fail the test. Query `option`s inside the
+  `Locations` listbox: the priority `<select>`s have options too.
 
 ### Key design rules
 - **The frontend never calls Open-Meteo directly.** The `weather` app proxies it, normalises the response and caches it
@@ -171,7 +186,8 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
   Never cache failures. Never hit the real API in tests: use the `mock_open_meteo` fixture, which turns any unmocked
   request into an error.
 - **"Real-time" weather** means a debounced (~300 ms) location autocomplete. Picking a location fetches a 7-day
-  forecast **once**. The Today / 3-day / 1-week filters slice that data on the client, with no extra request.
+  forecast **once**. The Today / 3-day / 1-week filters slice that data on the client, with no extra request, and
+  the 24-hour day card takes its hours from the same data.
 - **Per-user isolation:** every task queryset is filtered by `owner=request.user`. Tests must check that one user
   can't read or change another user's tasks (expect 404, not 403). Owner-scoped views must return
   `Model.objects.none()` when `swagger_fake_view` is set, or OpenAPI generation fails.

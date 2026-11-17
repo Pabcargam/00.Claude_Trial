@@ -60,6 +60,7 @@ class HourlySerializer(_ConditionsMixin):
     temperature = serializers.FloatField()
     precipitation_probability = serializers.IntegerField(allow_null=True)
     wind_speed = serializers.FloatField()
+    is_day = serializers.BooleanField(help_text="False between sunset and sunrise.")
 
 
 class ForecastLocationSerializer(serializers.Serializer):

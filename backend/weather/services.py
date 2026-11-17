@@ -104,6 +104,8 @@ def _normalise_forecast(raw: dict) -> dict:
                     "temperature": hourly["temperature_2m"][i],
                     "precipitation_probability": hourly["precipitation_probability"][i],
                     "wind_speed": hourly["wind_speed_10m"][i],
+                    # Sun up or down (real sunrise/sunset): lets clients show night icons.
+                    "is_day": bool(hourly["is_day"][i]),
                 },
                 hourly["weather_code"][i],
             )

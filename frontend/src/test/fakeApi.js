@@ -3,7 +3,8 @@
  *
  * Mirrors the real contract: JWT access/refresh tokens with rotation and logout
  * blacklisting, per-user task ownership (404 for other users' tasks), filters,
- * search and the server's ordering (open first, then most urgent).
+ * search and the server's ordering (open first, then most urgent), and the weather
+ * proxy (location search, normalised 7-day forecast sliced by `days`, 503 when down).
  */
 import { http, HttpResponse } from 'msw'
 import { setTokens } from '../auth/tokenStore'
@@ -20,7 +21,8 @@ export function resetFakeApi() {
     tasks: [], // API shape + owner
     access: new Map(), // token -> userId
     refresh: new Map(), // token -> userId (valid ones only)
-    calls: { refresh: 0 },
+    calls: { refresh: 0, forecast: 0 },
+    weatherDown: false,
   }
   counter = 0
 }
@@ -114,6 +116,15 @@ export function expireSession() {
   db.refresh.clear()
 }
 
+/** Open-Meteo is unreachable: both weather endpoints answer 503, like the backend proxy. */
+export function failWeather() {
+  db.weatherDown = true
+}
+
+export function restoreWeather() {
+  db.weatherDown = false
+}
+
 export const fakeApi = {
   get calls() {
     return db.calls
@@ -122,6 +133,106 @@ export const fakeApi = {
     return db.tasks
   },
 }
+
+// --- weather fixtures (the backend's normalised shape, see weather/services.py) ---------------
+
+export const LOCATIONS = [
+  {
+    id: 2510911,
+    name: 'Seville',
+    admin1: 'Andalusia',
+    country: 'Spain',
+    country_code: 'ES',
+    latitude: 37.38283,
+    longitude: -5.97317,
+    timezone: 'Europe/Madrid',
+  },
+  {
+    id: 3668605,
+    name: 'Sevilla',
+    admin1: 'Valle del Cauca',
+    country: 'Colombia',
+    country_code: 'CO',
+    latitude: 4.26667,
+    longitude: -75.93333,
+    timezone: 'America/Bogota',
+  },
+  {
+    id: 3117735,
+    name: 'Madrid',
+    admin1: 'Madrid',
+    country: 'Spain',
+    country_code: 'ES',
+    latitude: 40.4165,
+    longitude: -3.70256,
+    timezone: 'Europe/Madrid',
+  },
+]
+
+const CONDITIONS = [
+  { weather_code: 0, description: 'Clear sky', icon: 'clear' },
+  { weather_code: 61, description: 'Slight rain', icon: 'rain' },
+  { weather_code: 2, description: 'Partly cloudy', icon: 'partly-cloudy' },
+  { weather_code: 3, description: 'Overcast', icon: 'cloudy' },
+]
+
+// 7 days from 2026-11-10 (the fake's "today"), 24 hours each.
+const FORECAST_DATES = Array.from({ length: 7 }, (_, i) => `2026-11-${String(10 + i)}`)
+
+// Hourly conditions: "sun" icons at night (00:00, 01:00) and by day (12:00, 13:00) to check the
+// moon/sun icons; every other hour is overcast.
+const HOURLY_CONDITIONS = {
+  0: CONDITIONS[0],
+  1: CONDITIONS[2],
+  12: CONDITIONS[0],
+  13: CONDITIONS[2],
+}
+
+function hourlyRow(date, h, dayIndex) {
+  const row = {
+    time: `${date}T${String(h).padStart(2, '0')}:00`,
+    temperature: 8 + h / 2,
+    precipitation_probability: h === 23 ? null : h,
+    wind_speed: 5 + h / 4,
+    ...(HOURLY_CONDITIONS[h] ?? CONDITIONS[3]),
+  }
+  // Sun up 08:00–17:59 (Madrid in November). The last day has no flag at all, like a forecast
+  // cached before the backend sent is_day: it must show day icons.
+  if (dayIndex < 6) row.is_day = h >= 8 && h < 18
+  return row
+}
+
+function fullForecast(latitude, longitude) {
+  return {
+    location: { latitude, longitude, timezone: 'Europe/Madrid', elevation: 10 },
+    units: { temperature: '°C', wind_speed: 'km/h', precipitation: 'mm', probability: '%' },
+    current: {
+      time: '2026-11-10T12:00',
+      temperature: 19.4,
+      wind_speed: 8,
+      is_day: true,
+      ...CONDITIONS[0],
+    },
+    daily: FORECAST_DATES.map((date, i) => ({
+      date,
+      temperature_max: 20.4 + i,
+      temperature_min: 9.6 + i,
+      precipitation_probability: i === 6 ? null : i * 10, // Open-Meteo can omit it
+      precipitation_sum: i,
+      wind_speed_max: 10.4 + i,
+      ...CONDITIONS[i % CONDITIONS.length],
+    })),
+    hourly: FORECAST_DATES.flatMap((date, dayIndex) =>
+      Array.from({ length: 24 }, (_, h) => hourlyRow(date, h, dayIndex)),
+    ),
+  }
+}
+
+const weatherUnavailable = () =>
+  HttpResponse.json(
+    { detail: 'The weather service is temporarily unavailable. Please try again shortly.' },
+    { status: 503 },
+  )
 
 // --- handlers --------------------------------------------------------------------------------
 
@@ -240,5 +351,40 @@ export const fakeApiHandlers = [
     if (index === -1) return notFound()
     db.tasks.splice(index, 1)
     return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.get(`${API}/weather/locations/`, ({ request }) => {
+    if (!currentUser(request)) return unauthorized()
+    const q = (new URL(request.url).searchParams.get('q') ?? '').trim()
+    if (q.length < 2) {
+      return HttpResponse.json(
+        { q: ['Ensure this field has at least 2 characters.'] },
+        { status: 400 },
+      )
+    }
+    if (db.weatherDown) return weatherUnavailable()
+    const prefix = q.toLowerCase()
+    return HttpResponse.json(LOCATIONS.filter((l) => l.name.toLowerCase().startsWith(prefix)))
+  }),
+
+  http.get(`${API}/weather/forecast/`, ({ request }) => {
+    if (!currentUser(request)) return unauthorized()
+    db.calls.forecast += 1
+    const params = new URL(request.url).searchParams
+    const lat = Number(params.get('lat'))
+    const lon = Number(params.get('lon'))
+    const days = Number(params.get('days') ?? 7)
+    const errors = {}
+    if (!params.has('lat') || !(Math.abs(lat) <= 90)) errors.lat = ['A valid number is required.']
+    if (!params.has('lon') || !(Math.abs(lon) <= 180)) errors.lon = ['A valid number is required.']
+    if (![1, 3, 7].includes(days)) errors.days = [`"${params.get('days')}" is not a valid choice.`]
+    if (Object.keys(errors).length) return HttpResponse.json(errors, { status: 400 })
+    if (db.weatherDown) return weatherUnavailable()
+    // Same slicing as services.get_forecast: first `days` days and their hours.
+    const forecast = fullForecast(lat, lon)
+    const daily = forecast.daily.slice(0, days)
+    const dates = new Set(daily.map((d) => d.date))
+    const hourly = forecast.hourly.filter((h) => dates.has(h.time.slice(0, 10)))
+    return HttpResponse.json({ ...forecast, days, daily, hourly })
   }),
 ]

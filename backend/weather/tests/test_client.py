@@ -24,6 +24,7 @@ def test_fetch_forecast_sends_expected_parameters(mock_open_meteo, forecast_url)
     assert params["forecast_days"] == ["7"]
     assert params["timezone"] == ["auto"]
     assert set(params) >= {"current", "daily", "hourly"}
+    assert "is_day" in params["hourly"][0].split(",")  # night icons per hour
     assert call.request.headers["User-Agent"] == client.USER_AGENT
 
 
