@@ -26,6 +26,11 @@ export function degrees(value) {
   return `${Math.round(value)}°`
 }
 
+/** 40 → "40%"; Open-Meteo sometimes has no probability (null) → "–", without a unit. */
+export function percent(value, unit) {
+  return value == null ? '–' : `${value}${unit}`
+}
+
 // API dates are the location's calendar dates ("2026-11-17"). Read them at noon UTC and
 // format in UTC, so the viewer's own timezone can never move them to another day.
 function calendarDate(date, options) {

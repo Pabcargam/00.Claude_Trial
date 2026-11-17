@@ -1,4 +1,4 @@
-import { dayLabel, degrees, weatherEmoji } from './format'
+import { dayLabel, degrees, percent, weatherEmoji } from './format'
 import styles from './Weather.module.css'
 
 /**
@@ -30,8 +30,7 @@ export default function ForecastList({ days, units, selectedDate, onSelectDate }
               </span>
               <span className={styles.muted}>
                 <Stat emoji="💧" label="Rain chance">
-                  {day.precipitation_probability ?? '–'}
-                  {units.probability}
+                  {percent(day.precipitation_probability, units.probability)}
                 </Stat>
                 {' · '}
                 <Stat emoji="💨" label="Wind">

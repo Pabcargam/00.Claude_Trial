@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Stat } from './ForecastList'
-import { degrees, longDate, weatherEmoji } from './format'
+import { degrees, longDate, percent, weatherEmoji } from './format'
 import { useForecast } from './useWeather'
 import styles from './Weather.module.css'
 
@@ -49,8 +49,7 @@ export default function DayDetail({ location, days, date, onClose }) {
             <strong>{degrees(hour.temperature)}</strong>
             <span className={styles.muted}>
               <Stat emoji="💧" label="Rain chance">
-                {hour.precipitation_probability ?? '–'}
-                {units.probability}
+                {percent(hour.precipitation_probability, units.probability)}
               </Stat>
             </span>
             <span className={styles.muted}>
