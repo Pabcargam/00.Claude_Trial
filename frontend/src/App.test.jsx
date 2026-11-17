@@ -148,7 +148,7 @@ describe('authentication', () => {
     const user = userEvent.setup()
     signIn()
     renderApp()
-    await screen.findByRole('button', { name: 'Log out' })
+    await screen.findByText(/no tasks yet/i) // loaded: the refresh must come from the action below
     expireAccessTokens()
     const refreshesBefore = fakeApi.calls.refresh
 
@@ -163,7 +163,9 @@ describe('authentication', () => {
     const user = userEvent.setup()
     signIn()
     renderApp()
-    await screen.findByRole('button', { name: 'Log out' })
+    // Wait until the dashboard finished loading: if the first task-list request were still in
+    // flight it would hit the expired session itself (slow CI runners), before the user acts.
+    await screen.findByText(/no tasks yet/i)
     expireSession()
 
     await user.type(screen.getByLabelText('Title'), 'Buy paint')
