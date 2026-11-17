@@ -248,7 +248,7 @@ describe('weather panel', () => {
       expect(tiles[13]).toHaveTextContent('15°') // 8 + 13 / 2 = 14.5 → 15
       expect(tiles[13]).toHaveTextContent('Rain chance 13%')
       expect(tiles[13]).toHaveTextContent('Wind 8 km/h')
-      expect(within(tiles[0]).getByRole('img', { name: 'Overcast' })).toBeInTheDocument()
+      expect(within(tiles[2]).getByRole('img', { name: 'Overcast' })).toHaveTextContent('☁️')
       expect(fakeApi.calls.forecast).toBe(calls) // no extra request
 
       await user.click(tomorrow)
@@ -259,6 +259,38 @@ describe('weather panel', () => {
       expect(screen.getByRole('region', { name: 'Thursday 12 November · Seville' })).toBeVisible()
       await user.click(screen.getByRole('button', { name: 'Close day details' }))
       expect(dayCard()).not.toBeInTheDocument()
+    })
+
+    it('shows the moon after sunset and the sun by day, keeping the real description', async () => {
+      const user = userEvent.setup()
+      await renderDashboard()
+      await pickSeville(user)
+      await user.click(dayRows()[0])
+
+      const tiles = within(screen.getByRole('list', { name: 'Hourly forecast' })).getAllByRole(
+        'listitem',
+      )
+      const icon = (tile) => within(tile).getByRole('img')
+      // Night (is_day false): clear → moon, partly cloudy → cloud only.
+      expect(icon(tiles[0])).toHaveTextContent('🌙')
+      expect(icon(tiles[0])).toHaveAccessibleName('Clear sky')
+      expect(icon(tiles[1])).toHaveTextContent('☁️')
+      expect(icon(tiles[1])).toHaveAccessibleName('Partly cloudy')
+      // Day: the sun icons.
+      expect(icon(tiles[12])).toHaveTextContent('☀️')
+      expect(icon(tiles[13])).toHaveTextContent('⛅')
+    })
+
+    it('shows day icons for hours without a day/night flag (older cached forecasts)', async () => {
+      const user = userEvent.setup()
+      await renderDashboard()
+      await pickSeville(user)
+      await user.click(screen.getByRole('button', { name: '1 week' }))
+      await user.click(dayRows()[6])
+
+      const card = screen.getByRole('region', { name: 'Monday 16 November · Seville' })
+      const [midnight] = within(card).getAllByRole('listitem')
+      expect(within(midnight).getByRole('img', { name: 'Clear sky' })).toHaveTextContent('☀️')
     })
 
     it('hides when the range no longer includes the day, and returns with it', async () => {

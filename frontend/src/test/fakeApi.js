@@ -179,6 +179,29 @@ const CONDITIONS = [
 // 7 days from 2026-11-10 (the fake's "today"), 24 hours each.
 const FORECAST_DATES = Array.from({ length: 7 }, (_, i) => `2026-11-${String(10 + i)}`)
 
+// Hourly conditions: "sun" icons at night (00:00, 01:00) and by day (12:00, 13:00) to check the
+// moon/sun icons; every other hour is overcast.
+const HOURLY_CONDITIONS = {
+  0: CONDITIONS[0],
+  1: CONDITIONS[2],
+  12: CONDITIONS[0],
+  13: CONDITIONS[2],
+}
+
+function hourlyRow(date, h, dayIndex) {
+  const row = {
+    time: `${date}T${String(h).padStart(2, '0')}:00`,
+    temperature: 8 + h / 2,
+    precipitation_probability: h === 23 ? null : h,
+    wind_speed: 5 + h / 4,
+    ...(HOURLY_CONDITIONS[h] ?? CONDITIONS[3]),
+  }
+  // Sun up 08:00–17:59 (Madrid in November). The last day has no flag at all, like a forecast
+  // cached before the backend sent is_day: it must show day icons.
+  if (dayIndex < 6) row.is_day = h >= 8 && h < 18
+  return row
+}
+
 function fullForecast(latitude, longitude) {
   return {
     location: { latitude, longitude, timezone: 'Europe/Madrid', elevation: 10 },
@@ -199,14 +222,8 @@ function fullForecast(latitude, longitude) {
       wind_speed_max: 10.4 + i,
       ...CONDITIONS[i % CONDITIONS.length],
     })),
-    hourly: FORECAST_DATES.flatMap((date) =>
-      Array.from({ length: 24 }, (_, h) => ({
-        time: `${date}T${String(h).padStart(2, '0')}:00`,
-        temperature: 8 + h / 2,
-        precipitation_probability: h === 23 ? null : h,
-        wind_speed: 5 + h / 4,
-        ...CONDITIONS[3],
-      })),
+    hourly: FORECAST_DATES.flatMap((date, dayIndex) =>
+      Array.from({ length: 24 }, (_, h) => hourlyRow(date, h, dayIndex)),
     ),
   }
 }

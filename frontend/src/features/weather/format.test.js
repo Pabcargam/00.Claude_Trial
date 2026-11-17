@@ -16,6 +16,19 @@ describe('weather formatting', () => {
     expect(weatherEmoji(undefined)).toBe('❔')
   })
 
+  it('never shows a sun at night', () => {
+    expect(weatherEmoji('clear', false)).toBe('🌙')
+    expect(weatherEmoji('partly-cloudy', false)).toBe('☁️')
+    expect(weatherEmoji('drizzle', false)).toBe('🌧️')
+    expect(weatherEmoji('showers', false)).toBe('🌧️')
+    // No sun in these anyway: the same by day and by night.
+    for (const icon of ['cloudy', 'fog', 'rain', 'freezing-rain', 'snow', 'thunderstorm']) {
+      expect(weatherEmoji(icon, false)).toBe(weatherEmoji(icon, true))
+    }
+    expect(weatherEmoji('unknown', false)).toBe('❔')
+    expect(weatherEmoji('clear', true)).toBe('☀️')
+  })
+
   it('rounds temperatures', () => {
     expect(degrees(17.5)).toBe('18°')
     expect(degrees(-0.4)).toBe('0°') // Math.round gives -0, which prints as "0"
