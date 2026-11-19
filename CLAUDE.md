@@ -172,6 +172,12 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
   `weatherEmoji(icon, isDay)`: hourly tiles pass the backend's per-hour `is_day` (real sunset/sunrise); at night
   no sun shows (clear → 🌙, partly cloudy → ☁️, drizzle/showers → 🌧️). A missing flag (older cache) counts as day.
   Daily rows always use day icons.
+- **Frontend rain warnings** (Pablo's rules, in `src/features/weather/rain.js`): `rainLevel(probability)` is
+  `'possible'` from 30%, `'likely'` from 60%. `TasksPanel` gets the weather panel's `location` and uses
+  `useRainWarnings(location)` (rainy days of all 7 forecast days, same forecast query) to tag **open outdoor tasks
+  with a due date**; each tag shows the level word, not just a colour. `WeatherPanel` uses
+  `useOpenOutdoorTasksByDate` (`['tasks', open filters]` key, so task writes refresh it) to add "N outdoor tasks
+  due" to rainy day rows. No place picked = no warnings; there are no per-task locations.
 - **Frontend tests** run the whole app (`renderApp({ route })` in `src/test/utils.jsx`) against
   `src/test/fakeApi.js`, an in-memory MSW fake that mirrors the backend contract: rotation, blacklist, ownership 404s,
   filters, ordering, read-only completed tasks and the weather proxy. Helpers: `signIn`, `seedUser`, `seedTask`,
