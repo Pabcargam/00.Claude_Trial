@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { useRainWarnings } from '../weather/useWeather'
 import TaskFilters from './TaskFilters'
 import TaskForm from './TaskForm'
 import TaskItem from './TaskItem'
@@ -8,10 +9,15 @@ import { useTasks } from './useTasks'
 
 const NO_FILTERS = { status: 'all', priority: '', search: '' }
 
-export default function TasksPanel() {
+/** `location`: the weather panel's place; its forecast flags outdoor tasks due on rainy days. */
+export default function TasksPanel({ location = null }) {
   const [filters, setFilters] = useState(NO_FILTERS)
   const search = useDebouncedValue(filters.search)
   const tasks = useTasks({ ...filters, search })
+  const rain = useRainWarnings(location)
+  // Only open outdoor tasks can be rained on: done ones are done.
+  const rainFor = (task) =>
+    task.is_outdoor && !task.is_completed && task.due_date ? rain.get(task.due_date) : undefined
   const filtered = filters.status !== 'all' || filters.priority || search.trim()
 
   // Two cards: creating a task and browsing/filtering tasks are separate jobs, so their
@@ -54,7 +60,7 @@ export default function TasksPanel() {
         {tasks.data?.length > 0 && (
           <ul className={styles.list}>
             {tasks.data.map((task) => (
-              <TaskItem key={task.id} task={task} />
+              <TaskItem key={task.id} task={task} rain={rainFor(task)} />
             ))}
           </ul>
         )}

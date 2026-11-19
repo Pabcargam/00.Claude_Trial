@@ -203,6 +203,25 @@
   font-weight: 600;
 }
 
+/* Rain warning on an outdoor task: amber "possible", red "likely" (text says which, too). */
+.rainTag {
+  padding: 0.05rem 0.55rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.rainPossible {
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+}
+
+.rainLikely {
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+}
+
 .actions {
   display: inline-flex;
   align-items: center;

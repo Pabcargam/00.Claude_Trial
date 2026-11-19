@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { PencilIcon, TrashIcon } from '../../components/icons'
+import { RAIN_LEVELS } from '../weather/rain'
 import { PRIORITIES, priorityLabel } from './priority'
 import styles from './Tasks.module.css'
 import { useDeleteTask, useUpdateTask } from './useTasks'
@@ -22,7 +23,23 @@ function draftFrom(task) {
   }
 }
 
-export default function TaskItem({ task }) {
+const RAIN_CLASS = { possible: styles.rainPossible, likely: styles.rainLikely }
+
+/** Rain warning for an outdoor task's due date: level word + chance, never colour alone. */
+function RainTag({ level, probability }) {
+  const { label, emoji } = RAIN_LEVELS[level]
+  return (
+    <span
+      className={`${styles.rainTag} ${RAIN_CLASS[level]}`}
+      title={`${label} on the due date (${probability}% chance)`}
+    >
+      <span aria-hidden="true">{emoji}</span> {label} · {probability}%
+    </span>
+  )
+}
+
+/** `rain`: { level, probability } when this outdoor task is due on a rainy day. */
+export default function TaskItem({ task, rain }) {
   // 'view' | 'edit' | 'confirm-delete'. The delete confirmation is in-app on purpose:
   // native window.confirm() can be blocked or auto-dismissed by the browser.
   const [mode, setMode] = useState('view')
@@ -125,6 +142,7 @@ export default function TaskItem({ task }) {
               <span aria-hidden="true">🌤</span> Outdoor
             </span>
           )}
+          {rain && <RainTag {...rain} />}
         </span>
       </div>
 
