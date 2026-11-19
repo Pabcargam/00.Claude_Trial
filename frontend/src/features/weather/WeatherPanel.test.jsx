@@ -262,6 +262,92 @@ describe('weather panel', () => {
       expect(dayCard()).not.toBeInTheDocument()
     })
 
+    describe('hourly scroller', () => {
+      // jsdom has no layout: record scrollTo calls and place tile i at i * 100 px.
+      let scrollTo
+      beforeEach(() => {
+        scrollTo = vi.fn()
+        HTMLElement.prototype.scrollTo = scrollTo
+        vi.spyOn(HTMLElement.prototype, 'offsetLeft', 'get').mockImplementation(function () {
+          return [...this.parentElement.children].indexOf(this) * 100
+        })
+      })
+      afterEach(() => {
+        delete HTMLElement.prototype.scrollTo
+      })
+
+      it("marks the place's current hour on Today and starts the strip there", async () => {
+        const user = userEvent.setup()
+        await renderDashboard()
+        await pickSeville(user)
+
+        await user.click(dayRows()[0]) // Today: the fake's current.time is 12:00
+
+        const tiles = within(screen.getByRole('list', { name: 'Hourly forecast' })).getAllByRole(
+          'listitem',
+        )
+        expect(tiles[12]).toHaveTextContent(/^Now/)
+        expect(tiles[12]).not.toHaveTextContent('12:00')
+        expect(tiles.filter((tile) => tile.textContent.startsWith('Now'))).toHaveLength(1)
+        expect(tiles[11]).toHaveTextContent('11:00')
+        expect(scrollTo).toHaveBeenLastCalledWith({ left: 1200 })
+      })
+
+      it('starts other days at 00:00, with no "Now"', async () => {
+        const user = userEvent.setup()
+        await renderDashboard()
+        await pickSeville(user)
+        await user.click(dayRows()[0])
+        await user.click(screen.getByRole('button', { name: '3 days' }))
+
+        await user.click(dayRows()[1]) // Tomorrow
+
+        const strip = screen.getByRole('list', { name: 'Hourly forecast' })
+        expect(within(strip).queryByText('Now')).not.toBeInTheDocument()
+        expect(scrollTo).toHaveBeenLastCalledWith({ left: 0 })
+      })
+
+      it('pages the strip with ‹ › next to ×, each off at its end', async () => {
+        const user = userEvent.setup()
+        await renderDashboard()
+        await pickSeville(user)
+        await user.click(screen.getByRole('button', { name: '3 days' }))
+        await user.click(dayRows()[1]) // Tomorrow: starts at 00:00
+        const earlier = screen.getByRole('button', { name: 'Earlier hours' })
+        const later = screen.getByRole('button', { name: 'Later hours' })
+        // No layout in jsdom: nothing overflows yet, so both arrows are off.
+        expect(earlier).toBeDisabled()
+        expect(later).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Close day details' })).toBeEnabled()
+
+        // Give the strip a size: 2400 px of tiles in a 1200 px window, scrolled to the start.
+        const strip = screen.getByRole('list', { name: 'Hourly forecast' })
+        const isStrip = (element) => element === strip
+        vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockImplementation(function () {
+          return isStrip(this) ? 2400 : 0
+        })
+        vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function () {
+          return isStrip(this) ? 1200 : 0
+        })
+        strip.scrollBy = vi.fn()
+        act(() => strip.dispatchEvent(new Event('scroll')))
+
+        expect(earlier).toBeDisabled()
+        expect(later).toBeEnabled()
+        await user.click(later)
+        expect(strip.scrollBy).toHaveBeenLastCalledWith({ left: 1200, behavior: 'smooth' })
+
+        // Scrolled to the end: only ‹ is left.
+        vi.spyOn(HTMLElement.prototype, 'scrollLeft', 'get').mockImplementation(function () {
+          return isStrip(this) ? 1200 : 0
+        })
+        act(() => strip.dispatchEvent(new Event('scroll')))
+        expect(later).toBeDisabled()
+        await user.click(earlier)
+        expect(strip.scrollBy).toHaveBeenLastCalledWith({ left: -1200, behavior: 'smooth' })
+      })
+    })
+
     it('shows the moon after sunset and the sun by day, keeping the real description', async () => {
       const user = userEvent.setup()
       await renderDashboard()
