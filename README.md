@@ -4,7 +4,8 @@ A web app for planning everyday tasks around the weather. You keep a **TODO list
 priorities, and next to it you see the **weather forecast** for any place you search. If a chore means
 going outside, you can pick the best day for it.
 
-> **Status:** 🧭 Planning. The architecture has been agreed; scaffolding comes next.
+> **Status:** 🏗️ Phase 5 done: the TODO list and the weather forecast both work in the browser.
+> Next up: production setup with Nginx, a Postman collection and polish (Phase 6).
 
 ---
 
@@ -20,34 +21,61 @@ going outside, you can pick the best day for it.
 ## Features
 
 ### TODO list
-- Add tasks with a title, an optional description and a **priority** (`Low`, `Medium`, `High`, `Urgent`)
-- Edit the text and the priority inline
-- Mark a task as done (crossed out) or undo it
-- Delete tasks
-- Filter and sort by priority and status, and search by text
-- Optional due date and an "outdoor" flag to link tasks to the forecast
+- **New task** card: title, **priority** (`Low`, `Medium`, `High`, `Urgent`), optional due date and an
+  🌤 **Outdoor** flag for weather-dependent chores
+- **Your tasks** card: open tasks first, then most urgent, then soonest due date
+- Edit a task inline: title, priority, due date and outdoor flag (Escape cancels)
+- Mark a task as done (crossed out) or undo it. **Completed tasks are read-only** until reopened; the
+  API enforces this too
+- Delete any task, open or completed, after an in-app "Delete this task?" confirmation
+- Outdoor tasks stand out with a teal stripe, a tint and an "Outdoor" pill
+- Filter by status (All / Open / Done) and priority, and search by text as you type
+- An optional description is supported by the API (not shown in the UI yet)
 
 ### Weather
-- Location search box with autocomplete (debounced, so it updates as you type)
-- Forecast filters: **Current day**, **3 days**, **1 week**
-- Daily summary (min/max temperature, chance of rain, wind, weather icon) plus hourly detail for today
-- Weather data is fetched by the backend and cached, so the frontend never calls third-party APIs
+- Location search with autocomplete: suggestions appear as you type (after a 300 ms pause, from 2
+  letters), and you pick one with the mouse or the keyboard (↑/↓, Enter, Escape)
+- The picked place is remembered in this browser, per user, and restored on your next visit
+- Forecast filters: **Today**, **3 days**, **1 week**. One 7-day forecast is loaded per place and the
+  filters only slice it, so switching is instant
+- One row per day: weather emoji, description, max/min temperature, chance of rain and wind
+- Click a day to open its **24-hour card** below the task and weather cards, with one tile per hour
+  (temperature, rain chance, wind) in a row you scroll sideways: 12 tiles visible on desktop, 8 on
+  tablets, 4 on phones. Use ‹ › (tablet/desktop) or swipe. Today starts at the place's current hour,
+  marked **Now**; other days start at 00:00. Click the day again or × to close it
+- Between the real sunset and sunrise of the place, hours show night icons: a clear sky shows 🌙, and
+  "sun + cloud/rain" icons lose the sun (☁️, 🌧️)
+- Weather data is fetched by the backend and cached, so the frontend never calls third-party APIs. If
+  the weather service is down, the panel says so and offers Retry
+
+### Rain warnings for outdoor tasks
+- Once a place is picked in the weather panel, open **outdoor** tasks due on a rainy day within the
+  7-day forecast get a warning, in two levels:
+  - 🌦️ **Possible rain** (amber) from a 30% chance of rain
+  - 🌧️ **Rain likely** (red) from 60%
+- The task gets a tag such as "🌧️ Rain likely · 70%". Outdoor and the warning are stacked in a column
+  (Outdoor on top) beside the title and tags; on phones the column sits under them
+- The forecast day shows "⚠ 2 outdoor tasks due" in the same colour, so you can move them to a dry day
+- Indoor and completed tasks, and tasks with no due date or one beyond the forecast, get no warning.
+  Warnings update as soon as a task changes
 
 ### Accounts
-- Register and log in (JWT access and refresh tokens)
+- Register and log in (JWT access and refresh tokens). Registering logs you in straight away
+- You stay logged in across page reloads (for up to 7 days of inactivity); Log out revokes the session
+- The header greets you by first name, or by the part of your email before the `@`
 - Each user only sees and changes their own tasks
 
 ## Tech stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, Vite, JavaScript, React Router, TanStack Query, Axios, CSS Modules |
-| Backend | Python 3.12, Django 5, Django REST Framework, SimpleJWT, drf-spectacular (OpenAPI / Swagger) |
+| Frontend | React 19, Vite 8, JavaScript, React Router 8, TanStack Query, Axios, CSS Modules |
+| Backend | Python 3.12, Django 6.1, Django REST Framework, SimpleJWT, django-filter, drf-spectacular (OpenAPI / Swagger) |
 | Database | PostgreSQL 16 |
 | Cache | Redis 7 (weather responses, rate limiting) |
 | Weather data | [Open-Meteo](https://open-meteo.com/) geocoding and forecast APIs (free, no API key) |
 | Testing | pytest, pytest-django, factory_boy, responses · Vitest, React Testing Library, MSW |
-| Quality | Ruff (Python), ESLint and Prettier (JS), pre-commit |
+| Quality | Ruff (Python), oxlint and Prettier (JS), pre-commit |
 | Infrastructure | Docker, Docker Compose, Nginx (production), GitHub Actions (CI) |
 | API tooling | Swagger UI, Postman collection |
 
@@ -66,33 +94,132 @@ going outside, you can pick the best day for it.
                                   └──────────────┘       └──────────────┘      └─────────────────┘
 ```
 
-### Planned API (v1)
+### API (v1)
+
+✅ = available now. All planned backend endpoints are live.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| `POST` | `/api/v1/auth/register/` | Create an account |
-| `POST` | `/api/v1/auth/token/` | Log in (get access and refresh tokens) |
-| `POST` | `/api/v1/auth/token/refresh/` | Refresh the access token |
-| `POST` | `/api/v1/auth/logout/` | Blacklist the refresh token |
-| `GET` / `POST` | `/api/v1/tasks/` | List (filter, search, order) and create tasks |
-| `GET` / `PATCH` / `DELETE` | `/api/v1/tasks/{id}/` | Read, update and delete a task |
-| `GET` | `/api/v1/weather/locations/?q=` | Location autocomplete |
-| `GET` | `/api/v1/weather/forecast/?lat=&lon=&days=1\|3\|7` | Forecast for a location |
+| `GET` | `/api/v1/health/` | ✅ Database and cache status (`503` when degraded) |
+| `POST` | `/api/v1/auth/register/` | ✅ Create an account (`email`, `password`, optional `first_name`, `last_name`) |
+| `POST` | `/api/v1/auth/token/` | ✅ Log in with `email` + `password` → `access` (15 min) and `refresh` (7 days) tokens |
+| `POST` | `/api/v1/auth/token/refresh/` | ✅ New access token; the refresh token is rotated and the old one revoked |
+| `POST` | `/api/v1/auth/logout/` | ✅ Revoke a refresh token (`{"refresh": "..."}`) |
+| `GET` | `/api/v1/auth/me/` | ✅ The logged-in user's profile |
+| `GET` / `POST` | `/api/v1/tasks/` | ✅ List (filter, search, order, paginate) and create tasks |
+| `GET` / `PATCH` / `DELETE` | `/api/v1/tasks/{id}/` | ✅ Read, update and delete one of your tasks |
+| `GET` | `/api/v1/weather/locations/?q=` | ✅ Location autocomplete (up to 8 matches, `q` 2–100 characters) |
+| `GET` | `/api/v1/weather/forecast/?lat=&lon=&days=1\|3\|7` | ✅ Current conditions, daily and hourly forecast (`days` defaults to 7) |
 
-Interactive docs will be served at `/api/docs/`.
+Interactive docs: <http://localhost:8000/api/docs/> (Swagger UI). Raw schema: `/api/schema/`.
 
-## Planned repository layout
+**Authentication.** Every endpoint except health, register, login, refresh and logout needs an
+`Authorization: Bearer <access>` header. Register and login are limited to 10 requests per minute per client,
+and the weather endpoints to 60 per minute per user (`429` beyond that). Emails are case-insensitive.
+
+**Task fields**
+
+| Field | Notes |
+|---|---|
+| `title` | Required, up to 200 characters (surrounding spaces are trimmed) |
+| `description` | Optional |
+| `priority` | `LOW`, `MEDIUM` (default), `HIGH`, `URGENT`; case-insensitive on input |
+| `is_completed` | `true` fills `completed_at`; `false` clears it |
+| `due_date` | Optional, `YYYY-MM-DD` |
+| `is_outdoor` | Marks weather-dependent tasks |
+| `id`, `completed_at`, `created_at`, `updated_at` | Read-only |
+
+**Completed tasks are read-only.** A `PATCH` that changes anything on a completed task answers `400`
+("Completed tasks can't be edited. Reopen the task first."), unless the same request reopens it with
+`"is_completed": false`. Deleting a completed task is always allowed.
+
+**Listing tasks.** Query parameters:
+- Filters: `priority` (repeatable: `?priority=HIGH&priority=URGENT`), `completed`, `is_outdoor`, `due_before`, `due_after`
+- Text search: `search` (title and description)
+- Sorting: `ordering` with `priority`, `due_date`, `created_at`, `updated_at` or `title`; prefix `-` for descending
+- Pagination: `page`, `page_size` (default 50, max 200)
+
+The default order is open tasks first, then most urgent, then soonest due date. You only ever see your own
+tasks: another user's task answers `404`, as if it didn't exist.
+
+**Weather.** The backend calls [Open-Meteo](https://open-meteo.com/) and returns its own simpler format:
+
+```jsonc
+{
+  "days": 3,
+  "location": {"latitude": 37.36, "longitude": -5.96, "timezone": "Europe/Madrid", "elevation": 15.0},
+  "units": {"temperature": "°C", "wind_speed": "km/h", "precipitation": "mm", "probability": "%"},
+  "current": {"time": "2026-11-09T11:30", "temperature": 20.9, "wind_speed": 17.3, "is_day": true,
+              "weather_code": 80, "description": "Slight rain showers", "icon": "showers"},
+  "daily": [{"date": "2026-11-09", "temperature_min": 18.6, "temperature_max": 21.8,
+             "precipitation_probability": 100, "precipitation_sum": 17.1, "wind_speed_max": 19.6,
+             "weather_code": 95, "description": "Thunderstorm", "icon": "thunderstorm"}],
+  "hourly": [{"time": "2026-11-09T00:00", "temperature": 18.8, "precipitation_probability": 78,
+              "wind_speed": 9.2, "is_day": false, "weather_code": 95, "description": "Thunderstorm",
+              "icon": "thunderstorm"}]
+}
+```
+
+- `hourly` holds 24 rows per selected day, in the location's local time. `is_day` is `false` between
+  the location's sunset and sunrise.
+- `icon` is one of `clear`, `partly-cloudy`, `cloudy`, `fog`, `drizzle`, `rain`, `freezing-rain`, `showers`, `snow`,
+  `thunderstorm` or `unknown`.
+- Caching (Redis): a forecast is kept for 15 minutes per ~1 km area (coordinates rounded to 2 decimals), so data
+  can be up to 15 minutes old. One 7-day fetch serves all three `days` filters. Location searches are kept for 24 hours.
+- If Open-Meteo is down or answers unexpectedly, the API returns `503` with a friendly message. Failures are never cached.
+- Tunable through environment variables: `WEATHER_FORECAST_CACHE_SECONDS`, `WEATHER_LOCATIONS_CACHE_SECONDS`,
+  `OPEN_METEO_TIMEOUT_SECONDS`, `THROTTLE_RATE_WEATHER`.
+
+**Try it with curl** (stack running):
+
+```bash
+curl -X POST localhost:8000/api/v1/auth/register/ -H 'Content-Type: application/json' \
+  -d '{"email": "me@example.com", "password": "Sup3r-secret!"}'
+
+ACCESS=$(curl -s -X POST localhost:8000/api/v1/auth/token/ -H 'Content-Type: application/json' \
+  -d '{"email": "me@example.com", "password": "Sup3r-secret!"}' \
+  | python3 -c 'import sys, json; print(json.load(sys.stdin)["access"])')
+
+curl -X POST localhost:8000/api/v1/tasks/ -H "Authorization: Bearer $ACCESS" \
+  -H 'Content-Type: application/json' \
+  -d '{"title": "Paint the fence", "priority": "HIGH", "is_outdoor": true}'
+
+curl "localhost:8000/api/v1/tasks/?priority=HIGH" -H "Authorization: Bearer $ACCESS"
+
+curl "localhost:8000/api/v1/weather/locations/?q=Sevil" -H "Authorization: Bearer $ACCESS"
+
+curl "localhost:8000/api/v1/weather/forecast/?lat=37.38&lon=-5.97&days=3" -H "Authorization: Bearer $ACCESS"
+```
+
+## Repository layout
 
 ```
 .
-├── backend/            # Django project (config/) and apps: accounts/, tasks/, weather/
-├── frontend/           # Vite + React app
-├── docs/               # Architecture notes, Postman collection
-├── .github/workflows/  # CI pipelines
-├── docker-compose.yml        # Local development
-├── docker-compose.prod.yml   # Production-like stack
-└── .env.example        # Environment variables template (real .env is never committed)
+├── backend/
+│   ├── config/             # Django project: urls, settings/{base,dev,test,prod}.py
+│   ├── core/               # Cross-cutting endpoints (health check)
+│   ├── accounts/           # Email-based User model and JWT auth endpoints
+│   ├── tasks/              # Task model and per-user CRUD API
+│   ├── weather/            # Open-Meteo client, normalisation, Redis cache and endpoints
+│   ├── conftest.py         # Shared pytest fixtures
+│   ├── requirements/       # base.txt (runtime) and dev.txt (tests, lint)
+│   └── pyproject.toml      # Ruff, pytest and coverage config
+├── frontend/src/
+│   ├── api/                # Axios client (token refresh), auth/tasks/weather endpoints, error parsing
+│   ├── auth/               # Token store, AuthProvider, useAuth, route guards
+│   ├── features/tasks/     # New task card, task list, filters, query hooks
+│   ├── features/weather/   # Location search, forecast list + filters, 24-hour day card, hooks
+│   ├── pages/              # Login, Register, Dashboard
+│   ├── components/         # Shared UI: FormField, HealthBadge, icons
+│   ├── hooks/              # Generic hooks (debounce)
+│   └── test/               # MSW server, in-memory fake of the API, render helpers
+├── .github/workflows/      # CI pipeline
+├── docker-compose.yml      # Local development stack
+├── .pre-commit-config.yaml # Lint/format hooks
+└── .env.example            # Optional overrides (real .env is never committed)
 ```
+
+Coming later: `docs/` (Postman collection), `docker-compose.prod.yml`.
 
 ## Branching strategy
 
@@ -116,7 +243,7 @@ refactor/*─┘       ▲                │
 | `hotfix/<name>` | Urgent production fixes | `main` | `main` and `develop` |
 
 Conventions:
-- Short-lived branch names are kebab-case and have one purpose each. They are deleted after merging.
+- Short-lived branch names are kebab-case and have one purpose each. Merged branches are kept for reference.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/), e.g. `feat(tasks): add priority filter`.
 - `main`, `qa` and `develop` are protected by a GitHub ruleset: changes need a pull request, and force-pushes and
   deletion are blocked.
@@ -127,20 +254,105 @@ Conventions:
 
 - [x] Project definition and architecture
 - [x] Git branching strategy (`main`, `qa`, `develop` + short-lived branches)
-- [ ] **Phase 1:** Scaffolding: repo skeleton, Docker Compose, CI, linting, health endpoint
-- [ ] **Phase 2:** Backend: auth and tasks CRUD, with tests
-- [ ] **Phase 3:** Backend: weather proxy with Redis cache, with tests
-- [ ] **Phase 4:** Frontend: auth and TODO list UI, with tests
-- [ ] **Phase 5:** Frontend: weather panel and forecast filters, with tests
+- [x] **Phase 1:** Scaffolding: repo skeleton, Docker Compose, CI, linting, health endpoint
+- [x] **Phase 2:** Backend: auth and tasks CRUD, with tests
+- [x] **Phase 3:** Backend: weather proxy with Redis cache, with tests
+- [x] **Phase 4:** Frontend: auth and TODO list UI, with tests
+- [x] **Phase 5:** Frontend: weather panel, forecast filters and 24-hour day card, with tests
 - [ ] **Phase 6:** Production compose with Nginx, Postman collection, polish and refactor
 
 ## Getting started
 
-Setup instructions will be added in Phase 1. The goal is a single command to run everything locally:
+### Requirements
+- Docker with Docker Compose v2
+- For running tools outside Docker (optional): Python 3.12+, Node 22.12+ with **npm 11+**
+
+### Run the whole stack
 
 ```bash
 docker compose up --build
 ```
+
+| Service | URL |
+|---|---|
+| Frontend (Vite, hot reload) | <http://localhost:5173> |
+| Backend API | <http://localhost:8000/api/v1/> |
+| Swagger UI | <http://localhost:8000/api/docs/> |
+| Django admin | <http://localhost:8000/admin/> |
+| PostgreSQL | `localhost:5433` (user `todo`, db `todo_weather`) |
+| Redis | `localhost:6379` |
+
+Open <http://localhost:5173>, choose **Create one** to register, and you land on your TODO list.
+
+Every setting has a development default. To change something (for example a host port that's already
+in use), copy `.env.example` to `.env` and edit it. Create an admin user with:
+
+```bash
+docker compose exec backend python manage.py createsuperuser
+```
+
+After changing frontend dependencies, rebuild with fresh volumes. Otherwise the container keeps its old
+`node_modules`:
+
+```bash
+docker compose up -d --build -V frontend
+```
+
+Inspect the data directly in PostgreSQL:
+
+```bash
+docker compose exec db psql -U todo -d todo_weather -c "SELECT id, title, priority, is_completed, owner_id FROM tasks_task;"
+```
+
+### Backend
+
+```bash
+cd backend
+python3.12 -m venv .venv && .venv/bin/pip install -r requirements/dev.txt
+.venv/bin/pytest                                  # tests + coverage (SQLite in memory, no Docker needed)
+.venv/bin/pytest core/tests/test_health.py -k database  # a single file / test
+.venv/bin/ruff check . && .venv/bin/ruff format .  # lint + format
+```
+
+To run the tests against PostgreSQL in the running stack:
+
+```bash
+docker compose exec -e DATABASE_URL=postgres://todo:todo-dev-password@db:5432/todo_weather backend pytest
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm ci
+npm test                 # Vitest, once
+npm run test:watch       # watch mode
+npm run coverage         # with coverage thresholds (90%)
+npx vitest run src/features/tasks/TasksPanel.test.jsx   # a single file
+npm run lint && npm run format:check
+npm run build
+```
+
+Frontend tests run the real app (routes, auth, queries) against an in-memory fake of the API built with
+MSW (`src/test/fakeApi.js`). It mirrors the backend contract, so tests cover full user flows without a server.
+
+**Security note:** the access token lives only in memory; the refresh token is kept in `localStorage` so
+you stay logged in after a reload. A planned hardening (Phase 6) is to move the refresh token to an
+`httpOnly` cookie, which JavaScript can't read. The last picked weather location is also kept in
+`localStorage` (`todo-weather.location.<userId>`: place name and coordinates only).
+
+### Git hooks
+
+```bash
+backend/.venv/bin/pre-commit install       # run hooks on every commit
+backend/.venv/bin/pre-commit run --all-files
+```
+
+### Continuous integration
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every pull request and on pushes to `main`, `qa` and
+`develop`. It covers backend lint, Django checks (including `check --deploy` on production settings) and
+tests on PostgreSQL and Redis; frontend lint, tests with coverage and the build; and Docker image builds.
 
 ## License
 

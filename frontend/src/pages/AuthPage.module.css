@@ -1,0 +1,36 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.card h1 {
+  font-size: 1.5rem;
+}
+
+.alert {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  color: var(--error);
+  border: 1px solid currentColor;
+}
+
+.switch {
+  margin: 0;
+  font-size: 0.9rem;
+  text-align: center;
+}

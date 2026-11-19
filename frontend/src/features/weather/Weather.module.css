@@ -1,0 +1,275 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  min-width: 0;
+}
+
+.hint {
+  margin: 0;
+}
+
+.place {
+  margin: 0;
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+/* Read by screen readers, not shown (labels for the 💧 / 💨 emoji). */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.muted {
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+/* Place name on the left, range filter on the right; the filter wraps below when narrow. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--error);
+}
+
+.error p {
+  margin: 0;
+}
+
+/* Daily forecast: [emoji] [day + description] [temperatures + rain/wind], one row per day. */
+.days {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.days li + li {
+  border-top: 1px solid var(--border);
+}
+
+/* Each row is a toggle button (opens the day's 24-hour card): reset the global button look. */
+.day {
+  position: relative; /* contains the visually hidden labels */
+  display: grid;
+  grid-template-columns: 2.25rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  height: auto;
+  padding: 0.6rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+}
+
+.day:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.day[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.emoji {
+  font-size: 1.6rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.dayMain,
+.dayStats {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dayMain strong,
+.dayStats strong {
+  color: var(--text-h);
+}
+
+.dayStats {
+  align-items: flex-end;
+  text-align: right;
+}
+
+/* "⚠ 2 outdoor tasks due" on a rainy day: its own line under the description and stats,
+   amber for possible rain, red for likely rain. */
+.dayWarning {
+  grid-column: 2 / -1;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.warnPossible {
+  color: var(--warn);
+}
+
+.warnLikely {
+  color: var(--error);
+}
+
+/* Day detail: the last item of the dashboard grid, spanning both columns. */
+.detail {
+  composes: panel;
+  grid-column: 1 / -1;
+}
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.detailActions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* ‹ › × : square icon buttons, the same height as every other control. */
+.square {
+  width: 2.4rem;
+  padding: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+/* Phones swipe the strip, so the paging arrows would only take space. */
+@media (max-width: 600px) {
+  .pager {
+    display: none;
+  }
+}
+
+/* 24 hourly tiles in one row you scroll sideways, like phone weather apps, at every size.
+   --visible whole tiles fill the card (12 desktop, 8 tablet, 4 phone); snapping never stops
+   on a half-cut tile. position: relative makes the strip the tiles' offsetParent, so a tile's
+   offsetLeft is its scroll position (used to start Today at the current hour). */
+.hours {
+  --visible: 12;
+  --gap: 0.5rem;
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0.5rem;
+  display: flex;
+  gap: var(--gap);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+
+.hour {
+  flex: 0 0 calc((100% - (var(--visible) - 1) * var(--gap)) / var(--visible));
+  scroll-snap-align: start;
+  position: relative; /* keeps the visually hidden labels inside the tile (and the strip) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.6rem 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  text-align: center;
+}
+
+.hour strong {
+  color: var(--text-h);
+}
+
+.hourTime {
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The place's current hour on Today's card: "Now" instead of the time, accent border. */
+.hourNow {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.hourNow .hourTime {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .hours {
+    --visible: 8;
+  }
+}
+
+@media (max-width: 600px) {
+  .hours {
+    --visible: 4;
+  }
+}
+
+/* Location search: the suggestion list floats over the content below the input. */
+.search {
+  position: relative;
+}
+
+.search input {
+  width: 100%;
+}
+
+.options {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  max-height: 16rem;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+}
+
+.option {
+  padding: 0.45rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.option[aria-selected='true'] {
+  background: var(--accent);
+  color: #fff;
+}
+
+.searchStatus {
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+}
