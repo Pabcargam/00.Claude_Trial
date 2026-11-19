@@ -166,7 +166,11 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
   dashboard via `useWeatherSelection`, because two cards share it: `WeatherPanel` (combobox `LocationSearch`,
   `ForecastFilters`, `ForecastList` whose day rows are `aria-pressed` toggles) and `DayDetail`, the full-width
   24-hour card (last grid item, `grid-column: 1 / -1`). Both call `useForecast(location)`, i.e. the same cached query.
-  Tiles: 8×3 grid, 6×4 at ≤ 900px, swipe strip at ≤ 600px. The picked place is saved per user in `localStorage`
+  The hours are one horizontal scroller: `--visible` whole tiles (12, 8 at ≤ 900px, 4 at ≤ 600px) with snapping;
+  ‹ › come from `src/hooks/useHorizontalPager.js` (hidden on phones). Jumps made from code may fire no scroll
+  event, so call the hook's `refresh()` after them. Today starts at the tile of `current.time` (already the
+  place's local time), labelled "Now"; other days at 00:00. When checking this in the browser pane, the pane
+  must be visible: a hidden page pauses animation frames and scroll events. The picked place is saved per user in `localStorage`
   (`savedLocation.js`, key `todo-weather.location.<userId>`; storage errors mean "nothing saved"). Display helpers
   are in `format.js`: dates are calendar dates formatted in UTC, so the viewer's timezone can't shift them.
   `weatherEmoji(icon, isDay)`: hourly tiles pass the backend's per-hour `is_day` (real sunset/sunrise); at night

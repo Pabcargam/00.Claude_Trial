@@ -146,24 +146,48 @@
   gap: 0.75rem;
 }
 
-.close {
+.detailActions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* ‹ › × : square icon buttons, the same height as every other control. */
+.square {
   width: 2.4rem;
   padding: 0;
   font-size: 1.4rem;
   line-height: 1;
 }
 
-/* 24 hourly tiles: 8 x 3 on wide screens, 6 x 4 on medium ones (always full rows). */
+/* Phones swipe the strip, so the paging arrows would only take space. */
+@media (max-width: 600px) {
+  .pager {
+    display: none;
+  }
+}
+
+/* 24 hourly tiles in one row you scroll sideways, like phone weather apps, at every size.
+   --visible whole tiles fill the card (12 desktop, 8 tablet, 4 phone); snapping never stops
+   on a half-cut tile. position: relative makes the strip the tiles' offsetParent, so a tile's
+   offsetLeft is its scroll position (used to start Today at the current hour). */
 .hours {
+  --visible: 12;
+  --gap: 0.5rem;
+  position: relative;
   list-style: none;
   margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 0.5rem;
+  padding: 0 0 0.5rem;
+  display: flex;
+  gap: var(--gap);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
 }
 
 .hour {
+  flex: 0 0 calc((100% - (var(--visible) - 1) * var(--gap)) / var(--visible));
+  scroll-snap-align: start;
   position: relative; /* keeps the visually hidden labels inside the tile (and the strip) */
   display: flex;
   flex-direction: column;
@@ -185,24 +209,26 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The place's current hour on Today's card: "Now" instead of the time, accent border. */
+.hourNow {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.hourNow .hourTime {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 @media (max-width: 900px) {
   .hours {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    --visible: 8;
   }
 }
 
-/* Phones and small windows: one row of tiles you swipe sideways, like weather apps. */
 @media (max-width: 600px) {
   .hours {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    padding-bottom: 0.5rem;
-  }
-
-  .hour {
-    flex: 0 0 4.75rem;
-    scroll-snap-align: start;
+    --visible: 4;
   }
 }
 

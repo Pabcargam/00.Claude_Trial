@@ -40,8 +40,9 @@ going outside, you can pick the best day for it.
   filters only slice it, so switching is instant
 - One row per day: weather emoji, description, max/min temperature, chance of rain and wind
 - Click a day to open its **24-hour card** below the task and weather cards, with one tile per hour
-  (temperature, rain chance, wind). It's a tile grid on wide screens and a sideways swipe strip on
-  phones (under 600px). Click the day again or × to close it
+  (temperature, rain chance, wind) in a row you scroll sideways: 12 tiles visible on desktop, 8 on
+  tablets, 4 on phones. Use ‹ › (tablet/desktop) or swipe. Today starts at the place's current hour,
+  marked **Now**; other days start at 00:00. Click the day again or × to close it
 - Between the real sunset and sunrise of the place, hours show night icons: a clear sky shows 🌙, and
   "sun + cloud/rain" icons lose the sun (☁️, 🌧️)
 - Weather data is fetched by the backend and cached, so the frontend never calls third-party APIs. If
