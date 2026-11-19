@@ -1,18 +1,20 @@
 import { useEffect, useRef } from 'react'
+import { useHorizontalPager } from '../../hooks/useHorizontalPager'
 import { Stat } from './ForecastList'
 import { degrees, longDate, percent, weatherEmoji } from './format'
 import { useForecast } from './useWeather'
 import styles from './Weather.module.css'
 
 /**
- * The 24-hour card of the day picked in the weather card, full width below both cards:
- * a tile grid on wide screens, a horizontal swipe strip on phones. Uses the forecast already
+ * The 24-hour card of the day picked in the weather card, full width below both cards: one
+ * horizontal strip of hourly tiles (swipe, or ‹ › on wider screens). Uses the forecast already
  * loaded by the weather card (same query), so opening a day sends no request.
  * Renders nothing when the day is outside the current range or the forecast isn't loaded.
  */
 export default function DayDetail({ location, days, date, onClose }) {
   const forecast = useForecast(location)
   const ref = useRef(null)
+  const { ref: setHoursStrip, canBack, canForward, page } = useHorizontalPager()
   const day = forecast.data?.daily.slice(0, days).find((d) => d.date === date)
 
   // On desktop the card can open below a long task list: bring it into view.
@@ -30,16 +32,37 @@ export default function DayDetail({ location, days, date, onClose }) {
         <h2 id="day-detail-heading">
           {longDate(date)} · {location.name}
         </h2>
-        <button
-          type="button"
-          className={styles.close}
-          aria-label="Close day details"
-          onClick={onClose}
-        >
-          ×
-        </button>
+        <div className={styles.detailActions}>
+          {/* Paging for mouse users; hidden on phones, where you swipe. */}
+          <button
+            type="button"
+            className={`${styles.square} ${styles.pager}`}
+            aria-label="Earlier hours"
+            disabled={!canBack}
+            onClick={() => page(-1)}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            className={`${styles.square} ${styles.pager}`}
+            aria-label="Later hours"
+            disabled={!canForward}
+            onClick={() => page(1)}
+          >
+            ›
+          </button>
+          <button
+            type="button"
+            className={styles.square}
+            aria-label="Close day details"
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </div>
       </div>
-      <ol className={styles.hours} aria-label="Hourly forecast">
+      <ol ref={setHoursStrip} className={styles.hours} aria-label="Hourly forecast">
         {hours.map((hour) => (
           <li key={hour.time} className={styles.hour}>
             <span className={styles.hourTime}>{hour.time.slice(11, 16)}</span>

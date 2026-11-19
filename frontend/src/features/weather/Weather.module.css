@@ -146,11 +146,24 @@
   gap: 0.75rem;
 }
 
-.close {
+.detailActions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* ‹ › × : square icon buttons, the same height as every other control. */
+.square {
   width: 2.4rem;
   padding: 0;
   font-size: 1.4rem;
   line-height: 1;
+}
+
+/* Phones swipe the strip, so the paging arrows would only take space. */
+@media (max-width: 600px) {
+  .pager {
+    display: none;
+  }
 }
 
 /* 24 hourly tiles in one row you scroll sideways, like phone weather apps, at every size.
