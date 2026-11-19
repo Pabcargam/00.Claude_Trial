@@ -134,12 +134,46 @@
   grid-column: 1 / -1;
 }
 
+/* Middle column: the text block, plus (outdoor tasks with a rain warning) the tag stack,
+   vertically centred on the title and tags together. */
 .main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+/* Title + tags: the tags sit beside the title when there's room and drop below it otherwise. */
+.text {
+  flex: 1 1 auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem 0.6rem;
   min-width: 0;
+}
+
+/* Outdoor on top, rain warning below, with clear space between them (all screen sizes). */
+.tagStack {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Phones: beside the text the column would squeeze the title to nothing, so it moves under
+   the title and tags (still Outdoor above the warning), left-aligned with them. */
+@media (max-width: 600px) {
+  .main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+  }
+
+  .tagStack {
+    align-items: flex-start;
+  }
 }
 
 .title {

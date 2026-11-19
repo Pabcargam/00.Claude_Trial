@@ -69,6 +69,29 @@ describe('rain warnings for outdoor tasks', () => {
       }
     })
 
+    it('stacks Outdoor above the warning in their own group; Outdoor alone stays inline', async () => {
+      seedTask(pablo, { title: 'Paint the fence', is_outdoor: true, due_date: '2026-11-15' }) // 60%
+      seedTask(pablo, { title: 'Mow the lawn', is_outdoor: true, due_date: '2026-11-12' }) // 20%
+      await renderDashboard()
+      await screen.findByText('Paint the fence')
+
+      const warning = await within(taskRow('Paint the fence')).findByText(/Rain likely/)
+      const stack = warning.parentElement
+      expect([...stack.children].map((pill) => pill.textContent.trim())).toEqual([
+        '🌤 Outdoor',
+        '🌧️ Rain likely · 60%',
+      ])
+      expect(stack).not.toHaveTextContent('Medium') // priority and due date stay with the title
+      expect(stack).not.toHaveTextContent('Due')
+      expect(
+        within(taskRow('Paint the fence')).getAllByText('Outdoor', { exact: false }),
+      ).toHaveLength(1)
+
+      const outdoorOnly = within(taskRow('Mow the lawn')).getByText('Outdoor', { exact: false })
+      expect(outdoorOnly.parentElement).toHaveTextContent('Medium')
+      expect(outdoorOnly.parentElement).toHaveTextContent('Due')
+    })
+
     it('counts open outdoor tasks on rainy forecast days', async () => {
       const user = userEvent.setup()
       const outdoor = { is_outdoor: true }
