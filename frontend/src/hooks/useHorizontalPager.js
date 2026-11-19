@@ -10,21 +10,27 @@ export function useHorizontalPager() {
   const [element, setElement] = useState(null)
   const [edges, setEdges] = useState({ back: false, forward: false })
 
+  // Re-checks the edges. Runs on scroll and resize; call it yourself after moving the scroller
+  // from code: browsers don't always fire a scroll event for that.
+  const refresh = useCallback(() => {
+    if (!element) return
+    setEdges({
+      back: element.scrollLeft > 1,
+      forward: element.scrollLeft + element.clientWidth < element.scrollWidth - 1,
+    })
+  }, [element])
+
   useEffect(() => {
     if (!element) return undefined
-    const update = () =>
-      setEdges({
-        back: element.scrollLeft > 1,
-        forward: element.scrollLeft + element.clientWidth < element.scrollWidth - 1,
-      })
-    update()
-    element.addEventListener('scroll', update, { passive: true })
-    window.addEventListener('resize', update)
+    const frame = requestAnimationFrame(refresh) // first measure once laid out
+    element.addEventListener('scroll', refresh, { passive: true })
+    window.addEventListener('resize', refresh)
     return () => {
-      element.removeEventListener('scroll', update)
-      window.removeEventListener('resize', update)
+      cancelAnimationFrame(frame)
+      element.removeEventListener('scroll', refresh)
+      window.removeEventListener('resize', refresh)
     }
-  }, [element])
+  }, [element, refresh])
 
   const page = useCallback(
     (direction) =>
@@ -32,5 +38,12 @@ export function useHorizontalPager() {
     [element],
   )
 
-  return { ref: setElement, element, canBack: edges.back, canForward: edges.forward, page }
+  return {
+    ref: setElement,
+    element,
+    canBack: edges.back,
+    canForward: edges.forward,
+    page,
+    refresh,
+  }
 }
