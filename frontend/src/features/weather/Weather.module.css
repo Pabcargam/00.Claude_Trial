@@ -209,6 +209,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The place's current hour on Today's card: "Now" instead of the time, accent border. */
+.hourNow {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.hourNow .hourTime {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 @media (max-width: 900px) {
   .hours {
     --visible: 8;
