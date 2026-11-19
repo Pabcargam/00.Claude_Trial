@@ -158,7 +158,9 @@ React SPA (Vite, JavaScript) ──► Nginx (prod) ──► Django + DRF (guni
   routes. `displayName(user)` = first name or email local part.
 - **Frontend tasks** (`src/features/tasks/`): `TasksPanel` renders two cards, `TaskForm` ("New task") and the list
   card ("Your tasks"), with `TaskFilters` in a toolbar. `TaskItem` is a 3-column grid (checkbox | title + tags |
-  icon actions). Only the middle wraps, so the actions stay aligned in every row. The modes are view, edit and
+  icon actions). Only the middle wraps, so the actions stay aligned in every row. The middle is `.text` (title +
+  tags) plus, when an outdoor task has a rain warning, `.tagStack`: Outdoor above the warning, centred on `.text`
+  (Pablo's choice); at ≤ 600px it moves under `.text`, because beside it the title gets squeezed to ~0px. The modes are view, edit and
   confirm-delete. Completed tasks have edit disabled; delete always works. Hooks in `useTasks.js` invalidate
   `['tasks']` after writes, and the list keeps the server's order. Inputs, selects and buttons share one height
   (`index.css`, which also holds the shared `.segmented` toggle style).
