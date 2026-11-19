@@ -1,3 +1,4 @@
+import { useOpenOutdoorTasksByDate } from '../tasks/useTasks'
 import ForecastFilters from './ForecastFilters'
 import ForecastList from './ForecastList'
 import { placeLabel } from './format'
@@ -15,6 +16,7 @@ export default function WeatherPanel({
   onSelectDate,
 }) {
   const forecast = useForecast(location)
+  const outdoorByDate = useOpenOutdoorTasksByDate({ enabled: Boolean(location) })
 
   return (
     <section className={styles.panel} aria-labelledby="weather-heading">
@@ -31,6 +33,7 @@ export default function WeatherPanel({
             days={days}
             selectedDate={selectedDate}
             onSelectDate={onSelectDate}
+            outdoorByDate={outdoorByDate}
           />
         </>
       ) : (
@@ -42,7 +45,7 @@ export default function WeatherPanel({
   )
 }
 
-function Forecast({ query, days, selectedDate, onSelectDate }) {
+function Forecast({ query, days, selectedDate, onSelectDate, outdoorByDate }) {
   if (query.isPending) return <p role="status">Loading forecast…</p>
   if (query.isError) {
     return (
@@ -61,6 +64,7 @@ function Forecast({ query, days, selectedDate, onSelectDate }) {
       units={query.data.units}
       selectedDate={selectedDate}
       onSelectDate={onSelectDate}
+      outdoorByDate={outdoorByDate}
     />
   )
 }
