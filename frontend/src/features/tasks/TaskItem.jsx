@@ -111,6 +111,12 @@ export default function TaskItem({ task, rain }) {
     )
   }
 
+  const outdoorBadge = (
+    <span className={styles.outdoorBadge}>
+      <span aria-hidden="true">🌤</span> Outdoor
+    </span>
+  )
+
   const classes = [
     styles.item,
     task.is_completed && styles.done,
@@ -131,19 +137,23 @@ export default function TaskItem({ task, rain }) {
       {/* Only this middle part wraps: tags drop under the title on narrow screens, while the
           action icons keep the same position in every row (outdoor or not). */}
       <div className={styles.main}>
-        <span className={styles.title}>{task.title}</span>
-        <span className={styles.tags}>
-          <span className={`${styles.badge} ${styles[task.priority.toLowerCase()]}`}>
-            {priorityLabel(task.priority)}
-          </span>
-          {task.due_date && <span className={styles.meta}>Due {formatDate(task.due_date)}</span>}
-          {task.is_outdoor && (
-            <span className={styles.outdoorBadge}>
-              <span aria-hidden="true">🌤</span> Outdoor
+        <div className={styles.text}>
+          <span className={styles.title}>{task.title}</span>
+          <span className={styles.tags}>
+            <span className={`${styles.badge} ${styles[task.priority.toLowerCase()]}`}>
+              {priorityLabel(task.priority)}
             </span>
-          )}
-          {rain && <RainTag {...rain} />}
-        </span>
+            {task.due_date && <span className={styles.meta}>Due {formatDate(task.due_date)}</span>}
+            {task.is_outdoor && !rain && outdoorBadge}
+          </span>
+        </div>
+        {/* Outdoor + rain warning: stacked in their own column, centred on title and tags. */}
+        {rain && (
+          <span className={styles.tagStack}>
+            {outdoorBadge}
+            <RainTag {...rain} />
+          </span>
+        )}
       </div>
 
       <span className={styles.actions}>
