@@ -117,6 +117,22 @@
   text-align: right;
 }
 
+/* "⚠ 2 outdoor tasks due" on a rainy day: its own line under the description and stats,
+   amber for possible rain, red for likely rain. */
+.dayWarning {
+  grid-column: 2 / -1;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.warnPossible {
+  color: var(--warn);
+}
+
+.warnLikely {
+  color: var(--error);
+}
+
 /* Day detail: the last item of the dashboard grid, spanning both columns. */
 .detail {
   composes: panel;

@@ -202,6 +202,10 @@ function hourlyRow(date, h, dayIndex) {
   return row
 }
 
+// Daily rain chance, 2026-11-10 … 16. Hits the rain-warning boundaries exactly: 30% (Fri 13)
+// is "possible", 60% (Sun 15) is "likely". The last day has none (Open-Meteo can omit it).
+const DAILY_RAIN = [0, 10, 20, 30, 50, 60, null]
+
 function fullForecast(latitude, longitude) {
   return {
     location: { latitude, longitude, timezone: 'Europe/Madrid', elevation: 10 },
@@ -217,7 +221,7 @@ function fullForecast(latitude, longitude) {
       date,
       temperature_max: 20.4 + i,
       temperature_min: 9.6 + i,
-      precipitation_probability: i === 6 ? null : i * 10, // Open-Meteo can omit it
+      precipitation_probability: DAILY_RAIN[i],
       precipitation_sum: i,
       wind_speed_max: 10.4 + i,
       ...CONDITIONS[i % CONDITIONS.length],

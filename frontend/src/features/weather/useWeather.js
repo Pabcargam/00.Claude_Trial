@@ -1,6 +1,8 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { fetchForecast, searchLocations } from '../../api/weather'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { rainLevel } from './rain'
 
 export const MIN_QUERY_LENGTH = 2 // the backend rejects shorter searches
 const SEARCH_DELAY_MS = 300
@@ -30,4 +32,21 @@ export function useForecast(location) {
     enabled: Boolean(location),
     staleTime: FORECAST_FRESH_MS,
   })
+}
+
+/**
+ * Rainy days of the whole 7-day forecast (not just the range on screen), as a Map of
+ * "YYYY-MM-DD" → { probability, level }. Empty while no place is picked or loading.
+ * Same query as the weather card, so it never sends a request of its own.
+ */
+export function useRainWarnings(location) {
+  const { data } = useForecast(location)
+  return useMemo(() => {
+    const warnings = new Map()
+    for (const day of data?.daily ?? []) {
+      const level = rainLevel(day.precipitation_probability)
+      if (level) warnings.set(day.date, { probability: day.precipitation_probability, level })
+    }
+    return warnings
+  }, [data])
 }
