@@ -53,7 +53,8 @@ going outside, you can pick the best day for it.
   7-day forecast get a warning, in two levels:
   - 🌦️ **Possible rain** (amber) from a 30% chance of rain
   - 🌧️ **Rain likely** (red) from 60%
-- The task gets a tag such as "🌧️ Rain likely · 70%" next to its Outdoor pill
+- The task gets a tag such as "🌧️ Rain likely · 70%". Outdoor and the warning are stacked in a column
+  (Outdoor on top) beside the title and tags; on phones the column sits under them
 - The forecast day shows "⚠ 2 outdoor tasks due" in the same colour, so you can move them to a dry day
 - Indoor and completed tasks, and tasks with no due date or one beyond the forecast, get no warning.
   Warnings update as soon as a task changes
