@@ -47,6 +47,16 @@ going outside, you can pick the best day for it.
 - Weather data is fetched by the backend and cached, so the frontend never calls third-party APIs. If
   the weather service is down, the panel says so and offers Retry
 
+### Rain warnings for outdoor tasks
+- Once a place is picked in the weather panel, open **outdoor** tasks due on a rainy day within the
+  7-day forecast get a warning, in two levels:
+  - 🌦️ **Possible rain** (amber) from a 30% chance of rain
+  - 🌧️ **Rain likely** (red) from 60%
+- The task gets a tag such as "🌧️ Rain likely · 70%" next to its Outdoor pill
+- The forecast day shows "⚠ 2 outdoor tasks due" in the same colour, so you can move them to a dry day
+- Indoor and completed tasks, and tasks with no due date or one beyond the forecast, get no warning.
+  Warnings update as soon as a task changes
+
 ### Accounts
 - Register and log in (JWT access and refresh tokens). Registering logs you in straight away
 - You stay logged in across page reloads (for up to 7 days of inactivity); Log out revokes the session
