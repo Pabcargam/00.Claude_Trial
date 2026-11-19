@@ -153,17 +153,28 @@
   line-height: 1;
 }
 
-/* 24 hourly tiles: 8 x 3 on wide screens, 6 x 4 on medium ones (always full rows). */
+/* 24 hourly tiles in one row you scroll sideways, like phone weather apps, at every size.
+   --visible whole tiles fill the card (12 desktop, 8 tablet, 4 phone); snapping never stops
+   on a half-cut tile. position: relative makes the strip the tiles' offsetParent, so a tile's
+   offsetLeft is its scroll position (used to start Today at the current hour). */
 .hours {
+  --visible: 12;
+  --gap: 0.5rem;
+  position: relative;
   list-style: none;
   margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 0.5rem;
+  padding: 0 0 0.5rem;
+  display: flex;
+  gap: var(--gap);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
 }
 
 .hour {
+  flex: 0 0 calc((100% - (var(--visible) - 1) * var(--gap)) / var(--visible));
+  scroll-snap-align: start;
   position: relative; /* keeps the visually hidden labels inside the tile (and the strip) */
   display: flex;
   flex-direction: column;
@@ -187,22 +198,13 @@
 
 @media (max-width: 900px) {
   .hours {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    --visible: 8;
   }
 }
 
-/* Phones and small windows: one row of tiles you swipe sideways, like weather apps. */
 @media (max-width: 600px) {
   .hours {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    padding-bottom: 0.5rem;
-  }
-
-  .hour {
-    flex: 0 0 4.75rem;
-    scroll-snap-align: start;
+    --visible: 4;
   }
 }
 
